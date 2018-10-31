@@ -2,7 +2,7 @@
 
 ## Introduction
 
-**BERT**, or **B**idirectional **E**mbedding **R**epresentations from
+**BERT**, or **B**idirectional **E**ncoder **R**epresentations from
 **T**ransformers, is a new method of pre-training language representations which
 obtains state-of-the-art results on a wide array of Natural Language Processing
 (NLP) tasks.
@@ -205,7 +205,8 @@ the following flags to `run_classifier.py` or `run_squad.py`:
 
 Please see the
 [Google Cloud TPU tutorial](https://cloud.google.com/tpu/docs/tutorials/mnist)
-for how to use Cloud TPUs.
+for how to use Cloud TPUs. Alternatively, you can use the Codalab notebook
+"[BERT FineTuning with Cloud TPUs](https://colab.sandbox.google.com/github/tensorflow/tpu/blob/master/tools/colab/bert_finetuning_with_cloud_tpus.ipynb)".
 
 On Cloud TPUs, the pretrained model and the output directory will need to be on
 Google Cloud Storage. For example, if you have a bucket named `some_bucket`, you
