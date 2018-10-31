@@ -54,7 +54,7 @@ class BertConfig(object):
         layer in the Transformer encoder.
       hidden_act: The non-linear activation function (function or string) in the
         encoder and pooler.
-      hidden_dropout_prob: The dropout probabilitiy for all fully connected
+      hidden_dropout_prob: The dropout probability for all fully connected
         layers in the embeddings, encoder, and pooler.
       attention_probs_dropout_prob: The dropout ratio for the attention
         probabilities.
@@ -63,7 +63,7 @@ class BertConfig(object):
         (e.g., 512 or 1024 or 2048).
       type_vocab_size: The vocabulary size of the `token_type_ids` passed into
         `BertModel`.
-      initializer_range: The sttdev of the truncated_normal_initializer for
+      initializer_range: The stdev of the truncated_normal_initializer for
         initializing all weight matrices.
     """
     self.vocab_size = vocab_size
@@ -347,7 +347,7 @@ def dropout(input_tensor, dropout_prob):
 
   Args:
     input_tensor: float Tensor.
-    dropout_prob: Python float. The probabiltiy of dropping out a value (NOT of
+    dropout_prob: Python float. The probability of dropping out a value (NOT of
       *keeping* a dimension as in `tf.nn.dropout`).
 
   Returns:
@@ -605,7 +605,7 @@ def attention_layer(from_tensor,
     attention_mask: (optional) int32 Tensor of shape [batch_size,
       from_seq_length, to_seq_length]. The values should be 1 or 0. The
       attention scores will effectively be set to -infinity for any positions in
-      the mask that are 0, and will be unchaged for positions that are 1.
+      the mask that are 0, and will be unchanged for positions that are 1.
     num_attention_heads: int. Number of attention heads.
     size_per_head: int. Size of each attention head.
     query_act: (optional) Activation function for the query transform.
@@ -973,7 +973,7 @@ def assert_rank(tensor, expected_rank, name=None):
     name: Optional name of the tensor for the error message.
 
   Raises:
-    ValueError: If the expected shape doesn"t match the actual shape.
+    ValueError: If the expected shape doesn't match the actual shape.
   """
   if name is None:
     name = tensor.name

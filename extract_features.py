@@ -57,7 +57,7 @@ flags.DEFINE_string("vocab_file", None,
 
 flags.DEFINE_bool(
     "do_lower_case", True,
-    "Whethre to lower case the input text. Should be True for uncased "
+    "Whether to lower case the input text. Should be True for uncased "
     "models and False for cased models.")
 
 flags.DEFINE_integer("batch_size", 32, "Batch size for predictions.")
@@ -231,7 +231,7 @@ def convert_examples_to_features(examples, seq_length, tokenizer):
     # sequence or the second sequence. The embedding vectors for `type=0` and
     # `type=1` were learned during pre-training and are added to the wordpiece
     # embedding vector (and position vector). This is not *strictly* necessary
-    # since the [SEP] token unambigiously separates the sequences, but it makes
+    # since the [SEP] token unambiguously separates the sequences, but it makes
     # it easier for the model to learn the concept of sequences.
     #
     # For classification tasks, the first vector (corresponding to [CLS]) is
