@@ -671,7 +671,7 @@ accuracy numbers.
 *   If you are pre-training from scratch, be prepared that pre-training is
     computationally expensive, especially on GPUs. If you are pre-training from
     scratch, our recommended recipe is to pre-train a `BERT-Base` on a single
-    [preemptable Cloud TPU v2](https://cloud.google.com/tpu/docs/pricing), which
+    [preemptible Cloud TPU v2](https://cloud.google.com/tpu/docs/pricing), which
     takes about 2 weeks at a cost of about $500 USD (based on the pricing in
     October 2018). You will have to scale down the batch size when only training
     on a single Cloud TPU, compared to what was used in the paper. It is
