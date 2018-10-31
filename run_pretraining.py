@@ -375,8 +375,8 @@ def input_fn_builder(input_files,
       d = d.repeat()
 
     # We must `drop_remainder` on training because the TPU requires fixed
-    # size dimensions. For eval, we assume we are evaling on the CPU or GPU
-    # and we *don"t* want to drop the remainder, otherwise we wont cover
+    # size dimensions. For eval, we assume we are evaluating on the CPU or GPU
+    # and we *don't* want to drop the remainder, otherwise we wont cover
     # every sample.
     d = d.apply(
         tf.contrib.data.map_and_batch(
