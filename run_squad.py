@@ -22,6 +22,7 @@ import collections
 import json
 import math
 import os
+import random
 import modeling
 import optimization
 import tokenization
@@ -276,12 +277,12 @@ def read_squad_examples(input_file, is_training):
 
 
 def convert_examples_to_features(examples, tokenizer, max_seq_length,
-                                 doc_stride, max_query_length, is_training):
+                                 doc_stride, max_query_length, is_training,
+                                 output_fn):
   """Loads a data file into a list of `InputBatch`s."""
 
   unique_id = 1000000000
 
-  features = []
   for (example_index, example) in enumerate(examples):
     query_tokens = tokenizer.tokenize(example.question_text)
 
@@ -410,22 +411,23 @@ def convert_examples_to_features(examples, tokenizer, max_seq_length,
           tf.logging.info(
               "answer: %s" % (tokenization.printable_text(answer_text)))
 
-      features.append(
-          InputFeatures(
-              unique_id=unique_id,
-              example_index=example_index,
-              doc_span_index=doc_span_index,
-              tokens=tokens,
-              token_to_orig_map=token_to_orig_map,
-              token_is_max_context=token_is_max_context,
-              input_ids=input_ids,
-              input_mask=input_mask,
-              segment_ids=segment_ids,
-              start_position=start_position,
-              end_position=end_position))
-      unique_id += 1
+      feature = InputFeatures(
+          unique_id=unique_id,
+          example_index=example_index,
+          doc_span_index=doc_span_index,
+          tokens=tokens,
+          token_to_orig_map=token_to_orig_map,
+          token_is_max_context=token_is_max_context,
+          input_ids=input_ids,
+          input_mask=input_mask,
+          segment_ids=segment_ids,
+          start_position=start_position,
+          end_position=end_position)
 
-  return features
+      # Run callback
+      output_fn(feature)
+
+      unique_id += 1
 
 
 def _improve_answer_span(doc_tokens, input_start, input_end, tokenizer,
@@ -640,65 +642,51 @@ def model_fn_builder(bert_config, init_checkpoint, learning_rate,
   return model_fn
 
 
-def input_fn_builder(features, seq_length, is_training, drop_remainder):
+def input_fn_builder(input_file, seq_length, is_training, drop_remainder):
   """Creates an `input_fn` closure to be passed to TPUEstimator."""
 
-  all_unique_ids = []
-  all_input_ids = []
-  all_input_mask = []
-  all_segment_ids = []
-  all_start_positions = []
-  all_end_positions = []
+  name_to_features = {
+      "unique_ids": tf.FixedLenFeature([], tf.int64),
+      "input_ids": tf.FixedLenFeature([seq_length], tf.int64),
+      "input_mask": tf.FixedLenFeature([seq_length], tf.int64),
+      "segment_ids": tf.FixedLenFeature([seq_length], tf.int64),
+  }
 
-  for feature in features:
-    all_unique_ids.append(feature.unique_id)
-    all_input_ids.append(feature.input_ids)
-    all_input_mask.append(feature.input_mask)
-    all_segment_ids.append(feature.segment_ids)
-    if is_training:
-      all_start_positions.append(feature.start_position)
-      all_end_positions.append(feature.end_position)
+  if is_training:
+    name_to_features["start_positions"] = tf.FixedLenFeature([], tf.int64)
+    name_to_features["end_positions"] = tf.FixedLenFeature([], tf.int64)
+
+  def _decode_record(record, name_to_features):
+    """Decodes a record to a TensorFlow example."""
+    example = tf.parse_single_example(record, name_to_features)
+
+    # tf.Example only supports tf.int64, but the TPU only supports tf.int32.
+    # So cast all int64 to int32.
+    for name in list(example.keys()):
+      t = example[name]
+      if t.dtype == tf.int64:
+        t = tf.to_int32(t)
+      example[name] = t
+
+    return example
 
   def input_fn(params):
     """The actual input function."""
     batch_size = params["batch_size"]
 
-    num_examples = len(features)
-
-    # This is for demo purposes and does NOT scale to large data sets. We do
-    # not use Dataset.from_generator() because that uses tf.py_func which is
-    # not TPU compatible. The right way to load data is with TFRecordReader.
-    feature_map = {
-        "unique_ids":
-            tf.constant(all_unique_ids, shape=[num_examples], dtype=tf.int32),
-        "input_ids":
-            tf.constant(
-                all_input_ids, shape=[num_examples, seq_length],
-                dtype=tf.int32),
-        "input_mask":
-            tf.constant(
-                all_input_mask,
-                shape=[num_examples, seq_length],
-                dtype=tf.int32),
-        "segment_ids":
-            tf.constant(
-                all_segment_ids,
-                shape=[num_examples, seq_length],
-                dtype=tf.int32),
-    }
-    if is_training:
-      feature_map["start_positions"] = tf.constant(
-          all_start_positions, shape=[num_examples], dtype=tf.int32)
-      feature_map["end_positions"] = tf.constant(
-          all_end_positions, shape=[num_examples], dtype=tf.int32)
-
-    d = tf.data.Dataset.from_tensor_slices(feature_map)
-
+    # For training, we want a lot of parallel reading and shuffling.
+    # For eval, we want no shuffling and parallel reading doesn't matter.
+    d = tf.data.TFRecordDataset(input_file)
     if is_training:
       d = d.repeat()
       d = d.shuffle(buffer_size=100)
 
-    d = d.batch(batch_size=batch_size, drop_remainder=drop_remainder)
+    d = d.apply(
+        tf.contrib.data.map_and_batch(
+            lambda record: _decode_record(record, name_to_features),
+            batch_size=batch_size,
+            drop_remainder=drop_remainder))
+
     return d
 
   return input_fn
@@ -973,6 +961,41 @@ def _compute_softmax(scores):
   return probs
 
 
+class FeatureWriter(object):
+  """Writes InputFeature to TF example file."""
+
+  def __init__(self, filename, is_training):
+    self.filename = filename
+    self.is_training = is_training
+    self.num_features = 0
+    self._writer = tf.python_io.TFRecordWriter(filename)
+
+  def process_feature(self, feature):
+    """Write a InputFeature to the TFRecordWriter as a tf.train.Example."""
+    self.num_features += 1
+
+    def create_int_feature(values):
+      feature = tf.train.Feature(
+          int64_list=tf.train.Int64List(value=list(values)))
+      return feature
+
+    features = collections.OrderedDict()
+    features["unique_ids"] = create_int_feature([feature.unique_id])
+    features["input_ids"] = create_int_feature(feature.input_ids)
+    features["input_mask"] = create_int_feature(feature.input_mask)
+    features["segment_ids"] = create_int_feature(feature.segment_ids)
+
+    if self.is_training:
+      features["start_positions"] = create_int_feature([feature.start_position])
+      features["end_positions"] = create_int_feature([feature.end_position])
+
+    tf_example = tf.train.Example(features=tf.train.Features(feature=features))
+    self._writer.write(tf_example.SerializeToString())
+
+  def close(self):
+    self._writer.close()
+
+
 def main(_):
   tf.logging.set_verbosity(tf.logging.INFO)
 
@@ -1027,6 +1050,11 @@ def main(_):
         len(train_examples) / FLAGS.train_batch_size * FLAGS.num_train_epochs)
     num_warmup_steps = int(num_train_steps * FLAGS.warmup_proportion)
 
+    # Pre-shuffle the input to avoid having to make a very large shuffle
+    # buffer in in the `input_fn`.
+    rng = random.Random(12345)
+    rng.shuffle(train_examples)
+
   model_fn = model_fn_builder(
       bert_config=bert_config,
       init_checkpoint=FLAGS.init_checkpoint,
@@ -1046,20 +1074,30 @@ def main(_):
       predict_batch_size=FLAGS.predict_batch_size)
 
   if FLAGS.do_train:
-    train_features = convert_examples_to_features(
+    # We write to a temporary file to avoid storing very large constant tensors
+    # in memory.
+    train_writer = FeatureWriter(
+        filename=os.path.join(FLAGS.output_dir, "train.tf_record"),
+        is_training=True)
+    convert_examples_to_features(
         examples=train_examples,
         tokenizer=tokenizer,
         max_seq_length=FLAGS.max_seq_length,
         doc_stride=FLAGS.doc_stride,
         max_query_length=FLAGS.max_query_length,
-        is_training=True)
+        is_training=True,
+        output_fn=train_writer.process_feature)
+    train_writer.close()
+
     tf.logging.info("***** Running training *****")
     tf.logging.info("  Num orig examples = %d", len(train_examples))
-    tf.logging.info("  Num split examples = %d", len(train_features))
+    tf.logging.info("  Num split examples = %d", train_writer.num_features)
     tf.logging.info("  Batch size = %d", FLAGS.train_batch_size)
     tf.logging.info("  Num steps = %d", num_train_steps)
+    del train_examples
+
     train_input_fn = input_fn_builder(
-        features=train_features,
+        input_file=train_writer.filename,
         seq_length=FLAGS.max_seq_length,
         is_training=True,
         drop_remainder=True)
@@ -1068,13 +1106,25 @@ def main(_):
   if FLAGS.do_predict:
     eval_examples = read_squad_examples(
         input_file=FLAGS.predict_file, is_training=False)
-    eval_features = convert_examples_to_features(
+
+    eval_writer = FeatureWriter(
+        filename=os.path.join(FLAGS.output_dir, "eval.tf_record"),
+        is_training=False)
+    eval_features = []
+
+    def append_feature(feature):
+      eval_features.append(feature)
+      eval_writer.process_feature(feature)
+
+    convert_examples_to_features(
         examples=eval_examples,
         tokenizer=tokenizer,
         max_seq_length=FLAGS.max_seq_length,
         doc_stride=FLAGS.doc_stride,
         max_query_length=FLAGS.max_query_length,
-        is_training=False)
+        is_training=False,
+        output_fn=append_feature)
+    eval_writer.close()
 
     tf.logging.info("***** Running predictions *****")
     tf.logging.info("  Num orig examples = %d", len(eval_examples))
@@ -1084,7 +1134,7 @@ def main(_):
     all_results = []
 
     predict_input_fn = input_fn_builder(
-        features=eval_features,
+        input_file=eval_writer.filename,
         seq_length=FLAGS.max_seq_length,
         is_training=False,
         drop_remainder=False)
