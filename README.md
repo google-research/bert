@@ -311,7 +311,7 @@ python run_squad.py \
   --do_predict=True \
   --predict_file=$SQUAD_DIR/dev-v1.1.json \
   --train_batch_size=12 \
-  --learning_rate=5e-5 \
+  --learning_rate=3e-5 \
   --num_train_epochs=2.0 \
   --max_seq_length=384 \
   --doc_stride=128 \
@@ -347,8 +347,8 @@ python run_squad.py \
   --train_file=$SQUAD_DIR/train-v1.1.json \
   --do_predict=True \
   --predict_file=$SQUAD_DIR/dev-v1.1.json \
-  --train_batch_size=48 \
-  --learning_rate=5e-5 \
+  --train_batch_size=24 \
+  --learning_rate=3e-5 \
   --num_train_epochs=2.0 \
   --max_seq_length=384 \
   --doc_stride=128 \
@@ -583,6 +583,14 @@ Here's how to run the data generation. The input is a plain text file, with one
 sentence per line. (It is important that these be actual sentences for the "next
 sentence prediction" task). Documents are delimited by empty lines. The output
 is a set of `tf.train.Example`s serialized into `TFRecord` file format.
+
+You can perform sentence segmentation with an off-the-shelf NLP toolkit such as
+[spaCy](https://spacy.io/). The `create_pretraining_data.py` script will
+concatenate segments until they reach the maximum sequence length to minimize
+computational waste from padding (see the script for more details). However, you
+may want to intentionally add a slight amount of noise to your input data (e.g.,
+randomly truncate 2% of input segments) to make it more robust to non-sentential
+input during fine-tuning.
 
 This script stores all of the examples for the entire input file in memory, so
 for large data files you should shard the input file and call the script
