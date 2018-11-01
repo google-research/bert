@@ -334,7 +334,7 @@ def create_instances_from_document(
 
 def create_masked_lm_predictions(tokens, masked_lm_prob,
                                  max_predictions_per_seq, vocab_words, rng):
-  """Creates the predictis for the masked LM objective."""
+  """Creates the predictions for the masked LM objective."""
 
   cand_indexes = []
   for (i, token) in enumerate(tokens):
