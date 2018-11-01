@@ -205,7 +205,7 @@ the following flags to `run_classifier.py` or `run_squad.py`:
 
 Please see the
 [Google Cloud TPU tutorial](https://cloud.google.com/tpu/docs/tutorials/mnist)
-for how to use Cloud TPUs. Alternatively, you can use the Codalab notebook
+for how to use Cloud TPUs. Alternatively, you can use the Google Colab notebook
 "[BERT FineTuning with Cloud TPUs](https://colab.sandbox.google.com/github/tensorflow/tpu/blob/master/tools/colab/bert_finetuning_with_cloud_tpus.ipynb)".
 
 On Cloud TPUs, the pretrained model and the output directory will need to be on
