@@ -206,7 +206,7 @@ the following flags to `run_classifier.py` or `run_squad.py`:
 Please see the
 [Google Cloud TPU tutorial](https://cloud.google.com/tpu/docs/tutorials/mnist)
 for how to use Cloud TPUs. Alternatively, you can use the Google Colab notebook
-"[BERT FineTuning with Cloud TPUs](https://colab.sandbox.google.com/github/tensorflow/tpu/blob/master/tools/colab/bert_finetuning_with_cloud_tpus.ipynb)".
+"[BERT FineTuning with Cloud TPUs](https://colab.research.google.com/github/tensorflow/tpu/blob/master/tools/colab/bert_finetuning_with_cloud_tpus.ipynb)".
 
 On Cloud TPUs, the pretrained model and the output directory will need to be on
 Google Cloud Storage. For example, if you have a bucket named `some_bucket`, you
@@ -724,9 +724,9 @@ available. However, keep in mind that these are not compatible with our
 
 ## Using BERT in Colab
 
-If you want to use BERT with [Colab](https://colab.sandbox.google.com), you can
+If you want to use BERT with [Colab](https://colab.research.google.com), you can
 get started with the notebook
-"[BERT FineTuning with Cloud TPUs](https://colab.sandbox.google.com/github/tensorflow/tpu/blob/master/tools/colab/bert_finetuning_with_cloud_tpus.ipynb)".
+"[BERT FineTuning with Cloud TPUs](https://colab.research.google.com/github/tensorflow/tpu/blob/master/tools/colab/bert_finetuning_with_cloud_tpus.ipynb)".
 **At the time of this writing (October 31st, 2018), Colab users can access a
 Cloud TPU completely for free.** Note: One per user, availability limited,
 requires a Google Cloud Platform account with storage (although storage may be
