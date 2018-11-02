@@ -153,14 +153,20 @@ class DataProcessor(object):
 
   def get_train_examples(self, data_dir):
     """Gets a collection of `InputExample`s for the train set."""
-    raise NotImplementedError()
+    return self._create_examples(
+        self._read_tsv(os.path.join(data_dir, "train.tsv")), "train")
 
   def get_dev_examples(self, data_dir):
     """Gets a collection of `InputExample`s for the dev set."""
-    raise NotImplementedError()
+    return self._create_examples(
+        self._read_tsv(os.path.join(data_dir, "dev.tsv")), "dev")
 
   def get_labels(self):
     """Gets the list of labels for this data set."""
+    raise NotImplementedError()
+
+  def _create_examples(self, lines, set_type):
+    """Creates examples for the training and dev sets."""
     raise NotImplementedError()
 
   @classmethod
@@ -176,11 +182,6 @@ class DataProcessor(object):
 
 class MnliProcessor(DataProcessor):
   """Processor for the MultiNLI data set (GLUE version)."""
-
-  def get_train_examples(self, data_dir):
-    """See base class."""
-    return self._create_examples(
-        self._read_tsv(os.path.join(data_dir, "train.tsv")), "train")
 
   def get_dev_examples(self, data_dir):
     """See base class."""
@@ -210,16 +211,6 @@ class MnliProcessor(DataProcessor):
 class MrpcProcessor(DataProcessor):
   """Processor for the MRPC data set (GLUE version)."""
 
-  def get_train_examples(self, data_dir):
-    """See base class."""
-    return self._create_examples(
-        self._read_tsv(os.path.join(data_dir, "train.tsv")), "train")
-
-  def get_dev_examples(self, data_dir):
-    """See base class."""
-    return self._create_examples(
-        self._read_tsv(os.path.join(data_dir, "dev.tsv")), "dev")
-
   def get_labels(self):
     """See base class."""
     return ["0", "1"]
@@ -241,16 +232,6 @@ class MrpcProcessor(DataProcessor):
 
 class ColaProcessor(DataProcessor):
   """Processor for the CoLA data set (GLUE version)."""
-
-  def get_train_examples(self, data_dir):
-    """See base class."""
-    return self._create_examples(
-        self._read_tsv(os.path.join(data_dir, "train.tsv")), "train")
-
-  def get_dev_examples(self, data_dir):
-    """See base class."""
-    return self._create_examples(
-        self._read_tsv(os.path.join(data_dir, "dev.tsv")), "dev")
 
   def get_labels(self):
     """See base class."""
