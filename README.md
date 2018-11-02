@@ -154,7 +154,7 @@ Part-of-Speech tagging).
 These models are all released under the same license as the source code (Apache
 2.0).
 
-The links to the models are here (right-cick, 'Save link as...' on the name):
+The links to the models are here (right-click, 'Save link as...' on the name):
 
 *   **[`BERT-Base, Uncased`](https://storage.googleapis.com/bert_models/2018_10_18/uncased_L-12_H-768_A-12.zip)**:
     12-layer, 768-hidden, 12-heads, 110M parameters
@@ -704,7 +704,7 @@ domain.
 
 [Common Crawl](http://commoncrawl.org/) is another very large collection of
 text, but you will likely have to do substantial pre-processing and cleanup to
-extract a usuable corpus for pre-training BERT.
+extract a usable corpus for pre-training BERT.
 
 ### Learning a new WordPiece vocabulary
 
