@@ -251,10 +251,11 @@ def convert_examples_to_features(examples, seq_length, tokenizer):
     input_mask = [1] * len(input_ids)
 
     # Zero-pad up to the sequence length.
-    while len(input_ids) < seq_length:
-      input_ids.append(0)
-      input_mask.append(0)
-      input_type_ids.append(0)
+    remaining = seq_length - input_ids
+    if input_ids > 0:
+      input_ids += [0] * remaining
+      input_mask += [0] * remaining
+      input_type_ids += [0] * remaining
 
     assert len(input_ids) == seq_length
     assert len(input_mask) == seq_length
