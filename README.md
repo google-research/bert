@@ -704,7 +704,7 @@ domain.
 
 [Common Crawl](http://commoncrawl.org/) is another very large collection of
 text, but you will likely have to do substantial pre-processing and cleanup to
-extract a usuable corpus for pre-training BERT.
+extract a usable corpus for pre-training BERT.
 
 ### Learning a new WordPiece vocabulary
 
