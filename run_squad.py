@@ -996,9 +996,8 @@ class FeatureWriter(object):
     self._writer.close()
 
 
-def main(_):
-  tf.logging.set_verbosity(tf.logging.INFO)
-
+def validate_flags_or_throw(bert_config):
+  """Validate the input FLAGS or throw an exception."""
   if not FLAGS.do_train and not FLAGS.do_predict:
     raise ValueError("At least one of `do_train` or `do_predict` must be True.")
 
@@ -1011,13 +1010,24 @@ def main(_):
       raise ValueError(
           "If `do_predict` is True, then `predict_file` must be specified.")
 
-  bert_config = modeling.BertConfig.from_json_file(FLAGS.bert_config_file)
-
   if FLAGS.max_seq_length > bert_config.max_position_embeddings:
     raise ValueError(
         "Cannot use sequence length %d because the BERT model "
         "was only trained up to sequence length %d" %
         (FLAGS.max_seq_length, bert_config.max_position_embeddings))
+
+  if FLAGS.max_seq_length <= FLAGS.max_query_length + 3:
+    raise ValueError(
+        "The max_seq_length (%d) must be greater than max_query_length "
+        "(%d) + 3" % (FLAGS.max_seq_length, FLAGS.max_query_length))
+
+
+def main(_):
+  tf.logging.set_verbosity(tf.logging.INFO)
+
+  bert_config = modeling.BertConfig.from_json_file(FLAGS.bert_config_file)
+
+  validate_flags_or_throw(bert_config)
 
   tf.gfile.MakeDirs(FLAGS.output_dir)
 
