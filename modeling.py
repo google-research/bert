@@ -294,7 +294,7 @@ def get_activation(activation_string):
       activation.
   """
 
-  # We assume that anything that"s not a string is already an activation
+  # We assume that anything that's not a string is already an activation
   # function, so we just return it.
   if not isinstance(activation_string, six.string_types):
     return activation_string
