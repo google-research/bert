@@ -1,5 +1,27 @@
 # BERT
 
+**\*\*\*\*\* New November 3rd, 2018: Multilingual and Chinese models avalable
+\*\*\*\*\***
+
+We have made two new BERT models available:
+
+*   **[`BERT-Base, Multilingual`](https://storage.googleapis.com/bert_models/2018_11_03/multilingual_L-12_H-768_A-12.zip)**:
+    102 languages, 12-layer, 768-hidden, 12-heads, 110M parameters
+*   **[`BERT-Base, Chinese`](https://storage.googleapis.com/bert_models/2018_11_03/chinese_L-12_H-768_A-12.zip)**:
+    Chinese Simplified and Traditional, 12-layer, 768-hidden, 12-heads, 110M
+    parameters
+
+We use character-based tokenization for Chinese, and WordPiece tokenization for
+all other languages. Both models should work out-of-the-box without any code
+changes. We did update the implementation of `BasicTokenizer` in
+`tokenization.py` to support Chinese character tokenization, so please update if
+you forked it. However, we did not change the tokenization API.
+
+For more, see the
+[Multilingual README](https://github.com/google-research/bert/blob/master/multilingual.md).
+
+**\*\*\*\*\* End new information \*\*\*\*\***
+
 ## Introduction
 
 **BERT**, or **B**idirectional **E**ncoder **R**epresentations from
@@ -154,6 +176,9 @@ Part-of-Speech tagging).
 These models are all released under the same license as the source code (Apache
 2.0).
 
+For information about the Multilingual and Chinese model, see the
+[Multilingual README](https://github.com/google-research/bert/blob/master/multilingual.md).
+
 The links to the models are here (right-click, 'Save link as...' on the name):
 
 *   **[`BERT-Base, Uncased`](https://storage.googleapis.com/bert_models/2018_10_18/uncased_L-12_H-768_A-12.zip)**:
@@ -164,6 +189,11 @@ The links to the models are here (right-click, 'Save link as...' on the name):
     12-layer, 768-hidden, 12-heads , 110M parameters
 *   **`BERT-Large, Cased`**: 24-layer, 1024-hidden, 16-heads, 340M parameters
     (Not available yet. Needs to be re-generated).
+*   **[`BERT-Base, Multilingual`](https://storage.googleapis.com/bert_models/2018_11_03/multilingual_L-12_H-768_A-12.zip)**:
+    102 languages, 12-layer, 768-hidden, 12-heads, 110M parameters
+*   **[`BERT-Base, Chinese`](https://storage.googleapis.com/bert_models/2018_11_03/chinese_L-12_H-768_A-12.zip)**:
+    Chinese Simplified and Traditional, 12-layer, 768-hidden, 12-heads, 110M
+    parameters
 
 Each .zip file contains three items:
 
