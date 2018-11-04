@@ -24,24 +24,17 @@ dev and test sets have been translated (by humans) into 15 languages. Note that
 the training set was *machine* translated (we used the translations provided by
 XNLI, not Google NMT). For clarity, we only report on 6 languages below:
 
-| System     | English  | Chinese  | Spanish  | German   | Arabic   | Urdu     |
-| ---------- | -------- | -------- | -------- | -------- | -------- | -------- |
-| XNLI       | 73.7     | 67.0     | 68.8     | 66.5     | 65.8     | 56.6     |
-: Baseline - :          :          :          :          :          :          :
-: Translate  :          :          :          :          :          :          :
-: Train      :          :          :          :          :          :          :
-| XNLI       | 73.7     | 68.3     | 70.7     | 68.7     | 66.8     | 59.3     |
-: Baseline - :          :          :          :          :          :          :
-: Translate  :          :          :          :          :          :          :
-: Test       :          :          :          :          :          :          :
-| BERT -     | **81.4** | **74.2** | **77.3** | **75.2** | **70.5** | 61.7     |
-: Translate  :          :          :          :          :          :          :
-: Train      :          :          :          :          :          :          :
-| BERT -     | 81.4     | 70.1     | 74.9     | 74.4     | 70.4     | **62.1** |
-: Translate  :          :          :          :          :          :          :
-: Test       :          :          :          :          :          :          :
-| BERT -     | 81.4     | 63.8     | 74.3     | 70.5     | 62.1     | 58.3     |
-: Zero Shot  :          :          :          :          :          :          :
+<!-- mdformat off(no table) -->
+
+| System                          | English  | Chinese  | Spanish  | German   | Arabic   | Urdu     |
+| ------------------------------- | -------- | -------- | -------- | -------- | -------- | -------- |
+| XNLI Baseline - Translate Train | 73.7     | 67.0     | 68.8     | 66.5     | 65.8     | 56.6     |
+| XNLI Baseline - Translate       | 73.7     | 68.3     | 70.7     | 68.7     | 66.8     | 59.3     |
+| BERT -Translate Train           | **81.4** | **74.2** | **77.3** | **75.2** | **70.5** | 61.7     |
+| BERT - Translate Test           | 81.4     | 70.1     | 74.9     | 74.4     | 70.4     | **62.1** |
+| BERT - Zero Shot                | 81.4     | 63.8     | 74.3     | 70.5     | 62.1     | 58.3     |
+
+<!-- mdformat on -->
 
 The first two rows are baselines from the XNLI paper and the last three rows are
 our results with BERT.
