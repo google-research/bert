@@ -437,7 +437,7 @@ both) of the following techniques:
 ## Using BERT to extract fixed feature vectors (like ELMo)
 
 In certain cases, rather than fine-tuning the entire pre-trained model
-end-to-end, it can be beneficial to obtained *pre-trained contextual
+end-to-end, it can be beneficial to obtain *pre-trained contextual
 embeddings*, which are fixed contextual representations of each input token
 generated from the hidden layers of the pre-trained model. This should also
 mitigate most of the out-of-memory issues.
