@@ -781,13 +781,9 @@ def main(_):
       tf.logging.info("  Num examples = %d", len(predict_examples))
       tf.logging.info("  Batch size = %d", FLAGS.predict_batch_size)
 
-      # This tells the estimator to run through the entire set.
-      predict_steps = None
-      # However, if running predict on the TPU, you will need to specify the
-      # number of steps.
       if FLAGS.use_tpu:
         # Warning: According to tpu_estimator.py Prediction on TPU is an experimental feature and hence
-        # supported here
+        # not supported here
         raise ValueError('Prediction in TPU not supported')
 
       predict_drop_remainder = True if FLAGS.use_tpu else False
