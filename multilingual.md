@@ -51,9 +51,10 @@ foreign language into English. So training and evaluation were both done on
 English. However, test evaluation was done on machine-translated English, so the
 accuracy depends on the quality of the machine translation system.
 
-**Zero Shot** means that the system was trained on English, and then evaluated
-on the foreign language. In this case, machine translation was not involved at
-all in either the pre-training or fine-tuning.
+**Zero Shot** means that the Multilingual BERT system was fine-tuned on English
+MultiNLI, and then evaluated on the foreign language XNLI test. In this case,
+machine translation was not involved at all in either the pre-training or
+fine-tuning.
 
 Note that the English result is worse than the 84.2 MultiNLI baseline because
 this training used Multilingual BERT rather than English-only BERT. This implies
