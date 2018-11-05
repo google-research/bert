@@ -170,7 +170,7 @@ def model_fn_builder(bert_config, init_checkpoint, layer_indexes, use_tpu,
 
     tvars = tf.trainable_variables()
     scaffold_fn = None
-    (assignment_map, _) = modeling.get_assigment_map_from_checkpoint(
+    (assignment_map, _) = modeling.get_assignment_map_from_checkpoint(
         tvars, init_checkpoint)
     if use_tpu:
 

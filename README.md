@@ -1,5 +1,15 @@
 # BERT
 
+**\*\*\*\*\* New November 5th, 2018: Third-party PyTorch version of BERT
+available \*\*\*\*\***
+
+NLP researchers from HuggingFace made a
+[PyTorch version of BERT available](https://github.com/huggingface/pytorch-pretrained-BERT)
+which is compatible with our pre-trained checkpoints and is able to reproduce
+our results. (Thanks!) We were not involved in the creation or maintenance of
+the PyTorch implementation so please direct any questions towards the authors of
+that repository.
+
 **\*\*\*\*\* New November 3rd, 2018: Multilingual and Chinese models available
 \*\*\*\*\***
 
@@ -63,8 +73,8 @@ minutes.
 
 ## What is BERT?
 
-BERT is method of pre-training language representations, meaning that we train a
-general-purpose "language understanding" model on a large text corpus (like
+BERT is a method of pre-training language representations, meaning that we train
+a general-purpose "language understanding" model on a large text corpus (like
 Wikipedia), and then use that model for downstream NLP tasks that we care about
 (like question answering). BERT outperforms previous methods because it is the
 first *unsupervised*, *deeply bidirectional* system for pre-training NLP.
@@ -778,9 +788,13 @@ information.
 
 #### Is there a PyTorch version available?
 
-There is no official PyTorch implementation. If someone creates a line-for-line
-PyTorch reimplementation so that our pre-trained checkpoints can be directly
-converted, we would be happy to link to that PyTorch version here.
+There is no official PyTorch implementation. However, NLP researchers from
+HuggingFace made a
+[PyTorch version of BERT available](https://github.com/huggingface/pytorch-pretrained-BERT)
+which is compatible with our pre-trained checkpoints and is able to reproduce
+our results. We were not involved in the creation or maintenance of the PyTorch
+implementation so please direct any questions towards the authors of that
+repository.
 
 #### Will models in other languages be released?
 
