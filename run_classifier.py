@@ -589,7 +589,7 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
     else:
       output_spec = tf.contrib.tpu.TPUEstimatorSpec(
           mode=mode,
-          prediction=probabilities,
+          predictions=probabilities,
           scaffold_fn=scaffold_fn)
     return output_spec
 
@@ -803,7 +803,7 @@ def main(_):
       with tf.gfile.GFile(output_predict_file, "w") as writer:
           tf.logging.info("***** Predict results *****")
           for prediction in result:
-              output_line = '\t'.join(class_probability for class_probability in prediction) + '\n'
+              output_line = '\t'.join(str(class_probability) for class_probability in prediction) + '\n'
               writer.write(output_line)
 
 if __name__ == "__main__":
