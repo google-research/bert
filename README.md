@@ -1,6 +1,6 @@
 # BERT
 
-**\*\*\*\*\* New November 3rd, 2018: Multilingual and Chinese models avalable
+**\*\*\*\*\* New November 3rd, 2018: Multilingual and Chinese models available
 \*\*\*\*\***
 
 We have made two new BERT models available:
