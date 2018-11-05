@@ -164,6 +164,10 @@ class DataProcessor(object):
     """Gets a collection of `InputExample`s for the dev set."""
     raise NotImplementedError()
 
+  def get_predict_examples(self, data_dir):
+    """Gets a collection of `InputExample`s for prediction."""
+    raise NotImplementedError()
+
   def get_labels(self):
     """Gets the list of labels for this data set."""
     raise NotImplementedError()
@@ -241,6 +245,12 @@ class MnliProcessor(DataProcessor):
         self._read_tsv(os.path.join(data_dir, "dev_matched.tsv")),
         "dev_matched")
 
+  def get_predict_examples(self, data_dir):
+    """See base class."""
+    return self._create_examples(
+      self._read_tsv(os.path.join(data_dir, "predict.tsv")),
+      "predict")
+
   def get_labels(self):
     """See base class."""
     return ["contradiction", "entailment", "neutral"]
@@ -273,6 +283,11 @@ class MrpcProcessor(DataProcessor):
     return self._create_examples(
         self._read_tsv(os.path.join(data_dir, "dev.tsv")), "dev")
 
+  def get_predict_examples(self, data_dir):
+    """See base class."""
+    return self._create_examples(
+      self._read_tsv(os.path.join(data_dir, "predict.tsv")), "predict")
+
   def get_labels(self):
     """See base class."""
     return ["0", "1"]
@@ -304,6 +319,11 @@ class ColaProcessor(DataProcessor):
     """See base class."""
     return self._create_examples(
         self._read_tsv(os.path.join(data_dir, "dev.tsv")), "dev")
+
+  def get_predict_examples(self, data_dir):
+    """See base class."""
+    return self._create_examples(
+      self._read_tsv(os.path.join(data_dir, "predict.tsv")), "predict")
 
   def get_labels(self):
     """See base class."""
