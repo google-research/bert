@@ -799,7 +799,7 @@ def main(_):
 
       result = estimator.predict(input_fn=predict_input_fn)
 
-      output_predict_file = os.path.join(FLAGS.output_dir, "predict_results.txt")
+      output_predict_file = os.path.join(FLAGS.output_dir, "predict_results.tsv")
       with tf.gfile.GFile(output_predict_file, "w") as writer:
           tf.logging.info("***** Predict results *****")
           for prediction in result:
