@@ -772,35 +772,35 @@ def main(_):
         tf.logging.info("  %s = %s", key, str(result[key]))
         writer.write("%s = %s\n" % (key, str(result[key])))
   if FLAGS.do_predict:
-      predict_examples = processor.get_predict_examples(FLAGS.data_dir)
-      predict_file = os.path.join(FLAGS.output_dir, "predict.tf_record")
-      convert_examples_to_features(predict_examples, label_list,
-                                   FLAGS.max_seq_length, tokenizer, predict_file)
+    predict_examples = processor.get_predict_examples(FLAGS.data_dir)
+    predict_file = os.path.join(FLAGS.output_dir, "predict.tf_record")
+    convert_examples_to_features(predict_examples, label_list,
+                                 FLAGS.max_seq_length, tokenizer, predict_file)
 
-      tf.logging.info("***** Running prediction*****")
-      tf.logging.info("  Num examples = %d", len(predict_examples))
-      tf.logging.info("  Batch size = %d", FLAGS.predict_batch_size)
+    tf.logging.info("***** Running prediction*****")
+    tf.logging.info("  Num examples = %d", len(predict_examples))
+    tf.logging.info("  Batch size = %d", FLAGS.predict_batch_size)
 
-      if FLAGS.use_tpu:
-        # Warning: According to tpu_estimator.py Prediction on TPU is an experimental feature and hence
-        # not supported here
-        raise ValueError('Prediction in TPU not supported')
+    if FLAGS.use_tpu:
+      # Warning: According to tpu_estimator.py Prediction on TPU is an experimental feature and hence
+      # not supported here
+      raise ValueError('Prediction in TPU not supported')
 
-      predict_drop_remainder = True if FLAGS.use_tpu else False
-      predict_input_fn = input_fn_builder(
-          input_file=predict_file,
-          seq_length=FLAGS.max_seq_length,
-          is_training=False,
-          drop_remainder=predict_drop_remainder)
+    predict_drop_remainder = True if FLAGS.use_tpu else False
+    predict_input_fn = input_fn_builder(
+      input_file=predict_file,
+      seq_length=FLAGS.max_seq_length,
+      is_training=False,
+      drop_remainder=predict_drop_remainder)
 
-      result = estimator.predict(input_fn=predict_input_fn)
+    result = estimator.predict(input_fn=predict_input_fn)
 
-      output_predict_file = os.path.join(FLAGS.output_dir, "predict_results.tsv")
-      with tf.gfile.GFile(output_predict_file, "w") as writer:
-          tf.logging.info("***** Predict results *****")
-          for prediction in result:
-              output_line = '\t'.join(str(class_probability) for class_probability in prediction) + '\n'
-              writer.write(output_line)
+    output_predict_file = os.path.join(FLAGS.output_dir, "predict_results.tsv")
+    with tf.gfile.GFile(output_predict_file, "w") as writer:
+      tf.logging.info("***** Predict results *****")
+      for prediction in result:
+        output_line = '\t'.join(str(class_probability) for class_probability in prediction) + '\n'
+        writer.write(output_line)
 
 if __name__ == "__main__":
   flags.mark_flag_as_required("data_dir")
