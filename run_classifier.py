@@ -199,10 +199,10 @@ class MnliProcessor(DataProcessor):
     for (i, line) in enumerate(lines):
       if i == 0:
         continue
-      guid = "%s-%s" % (set_type, tokenization.convert_to_unicode(line[0]))
-      text_a = tokenization.convert_to_unicode(line[8])
-      text_b = tokenization.convert_to_unicode(line[9])
-      label = tokenization.convert_to_unicode(line[-1])
+      guid = "%s-%s" % (set_type, tokenization.convert_to_unicode(line[0]))  # index
+      text_a = tokenization.convert_to_unicode(line[8])  # sentence1
+      text_b = tokenization.convert_to_unicode(line[9])  # sentence2
+      label = tokenization.convert_to_unicode(line[-1])  # gold_label
       examples.append(
           InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
     return examples
