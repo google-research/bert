@@ -428,7 +428,7 @@ def main(_):
 
     # Write features to dictionary
     output_features["sentence_to_index"] = sentence_to_index
-    output_features[unique_id_str] = all_features
+    output_features[unique_id_str] = np.array(all_features).transpose((1, 0, 2))
 
   # Write dictionary to disk
   with open(FLAGS.output_file, "w") as fout:
