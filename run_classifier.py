@@ -409,7 +409,7 @@ def convert_single_example(ex_index, example, label_list, max_seq_length,
   return feature
 
 
-def filed_based_convert_examples_to_features(
+def file_based_convert_examples_to_features(
     examples, label_list, max_seq_length, tokenizer, output_file):
   """Convert a set of `InputExample`s to a TFRecord file."""
 
@@ -780,7 +780,7 @@ def main(_):
 
   if FLAGS.do_train:
     train_file = os.path.join(FLAGS.output_dir, "train.tf_record")
-    filed_based_convert_examples_to_features(
+    file_based_convert_examples_to_features(
         train_examples, label_list, FLAGS.max_seq_length, tokenizer, train_file)
     tf.logging.info("***** Running training *****")
     tf.logging.info("  Num examples = %d", len(train_examples))
@@ -796,7 +796,7 @@ def main(_):
   if FLAGS.do_eval:
     eval_examples = processor.get_dev_examples(FLAGS.data_dir)
     eval_file = os.path.join(FLAGS.output_dir, "eval.tf_record")
-    filed_based_convert_examples_to_features(
+    file_based_convert_examples_to_features(
         eval_examples, label_list, FLAGS.max_seq_length, tokenizer, eval_file)
 
     tf.logging.info("***** Running evaluation *****")
