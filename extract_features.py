@@ -409,7 +409,7 @@ def main(_):
         # only write token embedding if it corresponds to the representation
         # for an original word.
         if i not in unique_id_to_token_info[unique_id]["original_to_bert"]:
-          break
+          continue
         all_layers = []
         for (j, layer_index) in enumerate(layer_indexes):
           layer_output = result["layer_output_%d" % j]
