@@ -383,7 +383,6 @@ def main(_):
       init_checkpoint=FLAGS.init_checkpoint,
       use_tpu=FLAGS.use_tpu,
       use_one_hot_embeddings=FLAGS.use_one_hot_embeddings)
-  print("number of bert layers: {}".format(NUM_BERT_LAYERS + 1))
 
   # If TPU is not available, this will fall back to normal Estimator on CPU
   # or GPU.
