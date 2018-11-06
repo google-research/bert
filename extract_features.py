@@ -203,7 +203,11 @@ def convert_examples_to_features(examples, seq_length, tokenizer):
 
   features = []
   for (ex_index, example) in enumerate(examples):
-    tokens_a = tokenizer.tokenize(example.text_a)
+    # Split words independently to maintain alignment with labels
+    tokens_a = []
+    tokenized_text_a = example.text_a.split(" ")
+    for text_a_token in tokenized_text_a:
+      tokens_a.extend(tokenizer.tokenize(text_a_token))
 
     tokens_b = None
     if example.text_b:
@@ -349,6 +353,22 @@ def main(_):
 
   examples = read_examples(FLAGS.input_file)
 
+  # Get a mapping of unique_id to the orig_to_token_map
+  unique_id_to_token_info = {}
+  for example in examples:
+    original_tokens = example.text_a.split(" ")
+    bert_tokens = []
+    original_to_bert = []
+    bert_tokens.append("[CLS]")
+    for orig_token in original_tokens:
+      original_to_bert.append(len(bert_tokens))
+      bert_tokens.extend(tokenizer.tokenize(orig_token))
+    bert_tokens.append("[SEP]")
+    unique_id_to_token_info[example.unique_id] = {
+      "original_tokens": original_tokens,
+      "bert_tokens": bert_tokens,
+      "original_to_bert": original_to_bert}
+
   features = convert_examples_to_features(
       examples=examples, seq_length=FLAGS.max_seq_length, tokenizer=tokenizer)
 
@@ -381,8 +401,15 @@ def main(_):
       feature = unique_id_to_feature[unique_id]
       output_json = collections.OrderedDict()
       output_json["linex_index"] = unique_id
+      # Add info about the original tokens, the bert tokens,
+      # and the mapping from original to bert in the output json.
+      output_json["token_info"] = unique_id_to_token_info[unique_id]
       all_features = []
       for (i, token) in enumerate(feature.tokens):
+        # only write token embedding if it corresponds to the representation
+        # for an original word.
+        if i not in unique_id_to_feature[unique_id]["original_to_bert"]:
+          break
         all_layers = []
         for (j, layer_index) in enumerate(layer_indexes):
           layer_output = result["layer_output_%d" % j]
