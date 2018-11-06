@@ -308,8 +308,8 @@ that it's running on something other than a Cloud TPU, which includes a GPU.
 
 #### Prediction from classifier
 Once you have trained your classifier you can use it in inference mode by using the --do_predict=true command.
-You need to have a file named predict.tsv in the input folder. 
-Output will be created in file called predict_results.tsv in the output folder.
+You need to have a file named test.tsv in the input folder. 
+Output will be created in file called test_results.tsv in the output folder.
 Each line will contain output for each sample, columns are the class probabilities.
 ```shell
 export BERT_BASE_DIR=/path/to/bert/uncased_L-12_H-768_A-12
