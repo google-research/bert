@@ -416,7 +416,7 @@ def main(_):
         continue
       # Len: num_layers
       all_layers = []
-      for layer_num in enumerate(NUM_BERT_LAYERS):
+      for layer_num in range(NUM_BERT_LAYERS):
         layer_output = result["layer_output_%d" % layer_num]
         layer_output_values = [
             round(float(x), 6) for x in layer_output[i:(i + 1)].flat
