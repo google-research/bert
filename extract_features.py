@@ -77,6 +77,7 @@ flags.DEFINE_bool(
     "tf.nn.embedding_lookup will be used. On TPUs, this should be True "
     "since it is much faster.")
 
+NUM_BERT_LAYERS = 0
 
 class InputExample(object):
 
@@ -188,9 +189,9 @@ def model_fn_builder(bert_config, init_checkpoint, use_tpu,
         "unique_id": unique_ids,
     }
 
-    global num_bert_layers
-    num_bert_layers = len(all_layers)
-    for layer_index in range(num_bert_layers):
+    global NUM_BERT_LAYERS
+    NUM_BERT_LAYERS = len(all_layers)
+    for layer_index in range(NUM_BERT_LAYERS):
       predictions["layer_output_%d" % layer_index] = all_layers[layer_index]
 
     output_spec = tf.contrib.tpu.TPUEstimatorSpec(
@@ -382,7 +383,7 @@ def main(_):
       init_checkpoint=FLAGS.init_checkpoint,
       use_tpu=FLAGS.use_tpu,
       use_one_hot_embeddings=FLAGS.use_one_hot_embeddings)
-  print("number of bert layers: {}".format(num_bert_layers + 1))
+  print("number of bert layers: {}".format(NUM_BERT_LAYERS + 1))
 
   # If TPU is not available, this will fall back to normal Estimator on CPU
   # or GPU.
@@ -415,7 +416,7 @@ def main(_):
         continue
       # Len: num_layers
       all_layers = []
-      for layer_num in enumerate(num_bert_layers):
+      for layer_num in enumerate(NUM_BERT_LAYERS):
         layer_output = result["layer_output_%d" % layer_num]
         layer_output_values = [
             round(float(x), 6) for x in layer_output[i:(i + 1)].flat
