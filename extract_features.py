@@ -27,6 +27,8 @@ import modeling
 import tokenization
 import tensorflow as tf
 
+import numpy as np
+
 flags = tf.flags
 
 FLAGS = flags.FLAGS
