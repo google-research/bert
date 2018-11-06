@@ -426,6 +426,14 @@ def main(_):
 
       # Write features to HDF5
       features_to_write = np.array(all_features).transpose((1, 0, 2))
+      # Check that number of timesteps in features is the same as
+      # the number of words.
+      if len(unique_id_to_token_info[unique_id]["original_tokens"]) != features_to_write.shape[1]:
+        raise ValueError("Original tokens: {} with len {}. "
+                         "Shape of features_to_write: {}".format(
+                           unique_id_to_token_info[unique_id]["original_tokens"],
+                           len(unique_id_to_token_info[unique_id]["original_tokens"]),
+                           features_to_write.shape))
       fout.create_dataset(unique_id_str,
                           features_to_write.shape, dtype='float32',
                           data=features_to_write)
