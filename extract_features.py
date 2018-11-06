@@ -364,6 +364,7 @@ def main(_):
       original_to_bert.append(len(bert_tokens))
       bert_tokens.extend(tokenizer.tokenize(orig_token))
     bert_tokens.append("[SEP]")
+    assert len(original_to_bert) == len(original_tokens)
     unique_id_to_token_info[example.unique_id] = {
       "original_tokens": original_tokens,
       "bert_tokens": bert_tokens,
@@ -423,6 +424,8 @@ def main(_):
         features["token"] = token
         features["layers"] = all_layers
         all_features.append(features)
+      assert len(output_json["features"]) == len(
+        output_json["token_info"]["original_to_bert"])
       output_json["features"] = all_features
       writer.write(json.dumps(output_json) + "\n")
 
