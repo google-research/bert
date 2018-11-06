@@ -395,40 +395,44 @@ def main(_):
   input_fn = input_fn_builder(
       features=features, seq_length=FLAGS.max_seq_length)
 
-  with codecs.getwriter("utf-8")(tf.gfile.Open(FLAGS.output_file,
-                                               "w")) as writer:
-    for result in estimator.predict(input_fn, yield_single_examples=True):
-      unique_id = int(result["unique_id"])
-      feature = unique_id_to_feature[unique_id]
-      output_json = collections.OrderedDict()
-      output_json["linex_index"] = unique_id
-      # Add info about the original tokens, the bert tokens,
-      # and the mapping from original to bert in the output json.
-      output_json["token_info"] = unique_id_to_token_info[unique_id]
-      all_features = []
-      for (i, token) in enumerate(feature.tokens):
-        # only write token embedding if it corresponds to the representation
-        # for an original word.
-        if i not in unique_id_to_token_info[unique_id]["original_to_bert"]:
-          continue
-        all_layers = []
-        for (j, layer_index) in enumerate(layer_indexes):
-          layer_output = result["layer_output_%d" % j]
-          layers = collections.OrderedDict()
-          layers["index"] = layer_index
-          layers["values"] = [
-              round(float(x), 6) for x in layer_output[i:(i + 1)].flat
-          ]
-          all_layers.append(layers)
-        features = collections.OrderedDict()
-        features["token"] = token
-        features["layers"] = all_layers
-        all_features.append(features)
-      output_json["features"] = all_features
-      assert len(output_json["features"]) == len(
-        output_json["token_info"]["original_to_bert"])
-      writer.write(json.dumps(output_json) + "\n")
+  # Dict of str line# to (num_layers, num_tokens, embedding_size) numpy array
+  output_features = {}
+  sentence_to_index = {}
+  for result in estimator.predict(input_fn, yield_single_examples=True):
+    unique_id = int(result["unique_id"])
+    unique_id_str = str(unique_id)
+    sentence_to_index[
+      " ".join(unique_id_to_token_info[unique_id]["original_tokens"])] = unique_id_str
 
+    # Get the vectors for the sentence
+    feature = unique_id_to_feature[unique_id]
+    # Len: num_tokens
+    all_features = []
+    for (i, token) in enumerate(feature.tokens):
+      # only write token embedding if it corresponds to the representation
+      # for an original word.
+      if i not in unique_id_to_token_info[unique_id]["original_to_bert"]:
+        continue
+      # Len: num_layers
+      all_layers = []
+      for (j, layer_index) in enumerate(layer_indexes):
+        layer_output = result["layer_output_%d" % j]
+        layers = collections.OrderedDict()
+        layers["index"] = layer_index
+        layers["values"] = [
+            round(float(x), 6) for x in layer_output[i:(i + 1)].flat
+        ]
+        all_layers.append(layers)
+      all_layers = np.array(all_layers)
+      all_features.append(all_layers)
+
+    # Write features to dictionary
+    output_features["sentence_to_index"] = sentence_to_index
+    output_features[unique_id_str] = all_features
+
+  # Write dictionary to disk
+  with open(FLAGS.output_file, "w") as fout:
+    json.dump(output_features, fout)
 
 if __name__ == "__main__":
   flags.mark_flag_as_required("input_file")
