@@ -419,12 +419,10 @@ def main(_):
       all_layers = []
       for (j, layer_index) in enumerate(layer_indexes):
         layer_output = result["layer_output_%d" % j]
-        layers = collections.OrderedDict()
-        layers["index"] = layer_index
-        layers["values"] = [
+        layer_output_values = [
             round(float(x), 6) for x in layer_output[i:(i + 1)].flat
         ]
-        all_layers.append(layers)
+        all_layers.append(layer_output_values)
       all_layers = np.array(all_layers)
       all_features.append(all_layers)
 
