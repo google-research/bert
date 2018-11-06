@@ -37,8 +37,6 @@ flags.DEFINE_string("input_file", None, "")
 
 flags.DEFINE_string("output_file", None, "")
 
-flags.DEFINE_string("layers", "-1,-2,-3,-4", "")
-
 flags.DEFINE_string(
     "bert_config_file", None,
     "The config json file corresponding to the pre-trained BERT model. "
@@ -147,7 +145,7 @@ def input_fn_builder(features, seq_length):
   return input_fn
 
 
-def model_fn_builder(bert_config, init_checkpoint, layer_indexes, use_tpu,
+def model_fn_builder(bert_config, init_checkpoint, use_tpu,
                      use_one_hot_embeddings):
   """Returns `model_fn` closure for TPUEstimator."""
 
@@ -190,8 +188,10 @@ def model_fn_builder(bert_config, init_checkpoint, layer_indexes, use_tpu,
         "unique_id": unique_ids,
     }
 
-    for (i, layer_index) in enumerate(layer_indexes):
-      predictions["layer_output_%d" % i] = all_layers[layer_index]
+    global num_bert_layers
+    num_bert_layers = len(all_layers)
+    for layer_index in range(num_bert_layers):
+      predictions["layer_output_%d" % layer_index] = all_layers[layer_index]
 
     output_spec = tf.contrib.tpu.TPUEstimatorSpec(
         mode=mode, predictions=predictions, scaffold_fn=scaffold_fn)
@@ -339,8 +339,6 @@ def read_examples(input_file):
 def main(_):
   tf.logging.set_verbosity(tf.logging.INFO)
 
-  layer_indexes = [int(x) for x in FLAGS.layers.split(",")]
-
   bert_config = modeling.BertConfig.from_json_file(FLAGS.bert_config_file)
 
   tokenizer = tokenization.FullTokenizer(
@@ -382,9 +380,9 @@ def main(_):
   model_fn = model_fn_builder(
       bert_config=bert_config,
       init_checkpoint=FLAGS.init_checkpoint,
-      layer_indexes=layer_indexes,
       use_tpu=FLAGS.use_tpu,
       use_one_hot_embeddings=FLAGS.use_one_hot_embeddings)
+  print("number of bert layers: {}".format(num_bert_layers + 1))
 
   # If TPU is not available, this will fall back to normal Estimator on CPU
   # or GPU.
@@ -417,8 +415,8 @@ def main(_):
         continue
       # Len: num_layers
       all_layers = []
-      for (j, layer_index) in enumerate(layer_indexes):
-        layer_output = result["layer_output_%d" % j]
+      for layer_num in enumerate(num_bert_layers):
+        layer_output = result["layer_output_%d" % layer_num]
         layer_output_values = [
             round(float(x), 6) for x in layer_output[i:(i + 1)].flat
         ]
