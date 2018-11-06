@@ -424,9 +424,9 @@ def main(_):
         features["token"] = token
         features["layers"] = all_layers
         all_features.append(features)
+      output_json["features"] = all_features
       assert len(output_json["features"]) == len(
         output_json["token_info"]["original_to_bert"])
-      output_json["features"] = all_features
       writer.write(json.dumps(output_json) + "\n")
 
 
