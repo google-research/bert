@@ -18,8 +18,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import codecs
-import collections
 import json
 import re
 
@@ -27,6 +25,7 @@ import modeling
 import tokenization
 import tensorflow as tf
 
+import h5py
 import numpy as np
 
 flags = tf.flags
@@ -398,39 +397,42 @@ def main(_):
   # Dict of str line# to (num_layers, num_tokens, embedding_size) numpy array
   output_features = {}
   sentence_to_index = {}
-  for result in estimator.predict(input_fn, yield_single_examples=True):
-    unique_id = int(result["unique_id"])
-    unique_id_str = str(unique_id)
-    sentence_to_index[
-      " ".join(unique_id_to_token_info[unique_id]["original_tokens"])] = unique_id_str
+  with h5py.File(FLAGS.output_file, "w") as fout:
+    for result in estimator.predict(input_fn, yield_single_examples=True):
+      unique_id = int(result["unique_id"])
+      unique_id_str = str(unique_id)
+      sentence_to_index[
+        " ".join(unique_id_to_token_info[unique_id]["original_tokens"])] = unique_id_str
 
-    # Get the vectors for the sentence
-    feature = unique_id_to_feature[unique_id]
-    # Len: num_tokens
-    all_features = []
-    for (i, token) in enumerate(feature.tokens):
-      # only write token embedding if it corresponds to the representation
-      # for an original word.
-      if i not in unique_id_to_token_info[unique_id]["original_to_bert"]:
-        continue
-      # Len: num_layers
-      all_layers = []
-      for layer_num in range(NUM_BERT_LAYERS):
-        layer_output = result["layer_output_%d" % layer_num]
-        layer_output_values = [
-            round(float(x), 6) for x in layer_output[i:(i + 1)].flat
-        ]
-        all_layers.append(layer_output_values)
-      all_layers = np.array(all_layers)
-      all_features.append(all_layers)
+      # Get the vectors for the sentence
+      feature = unique_id_to_feature[unique_id]
+      # Len: num_tokens
+      all_features = []
+      for (i, token) in enumerate(feature.tokens):
+        # only write token embedding if it corresponds to the representation
+        # for an original word.
+        if i not in unique_id_to_token_info[unique_id]["original_to_bert"]:
+          continue
+        # Len: num_layers
+        all_layers = []
+        for layer_num in range(NUM_BERT_LAYERS):
+          layer_output = result["layer_output_%d" % layer_num]
+          layer_output_values = [
+              round(float(x), 6) for x in layer_output[i:(i + 1)].flat
+          ]
+          all_layers.append(layer_output_values)
+        all_layers = np.array(all_layers)
+        all_features.append(all_layers)
 
-    # Write features to dictionary
-    output_features["sentence_to_index"] = sentence_to_index
-    output_features[unique_id_str] = np.array(all_features).transpose((1, 0, 2))
-
-  # Write dictionary to disk
-  with open(FLAGS.output_file, "w") as fout:
-    json.dump(output_features, fout)
+      # Write features to HDF5
+      features_to_write = np.array(all_features).transpose((1, 0, 2))
+      fout.create_dataset(unique_id_str,
+                          features_to_write.shape, dtype='float32',
+                          data=features_to_write)
+    # Write sentence_to_index dict to HDF5
+    sentence_index_dataset = fout.create_dataset(
+      "sentence_to_index", (1,), dtype=h5py.special_dtype(vlen=str))
+    sentence_index_dataset[0] = json.dumps(sentence_to_index)
 
 if __name__ == "__main__":
   flags.mark_flag_as_required("input_file")
