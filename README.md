@@ -512,8 +512,10 @@ As an example, we include the script `extract_features.py` which can be used
 like this:
 
 ```shell
-# Sentence A and Sentence B are separated by the ||| delimiter.
-# For single sentence inputs, don't use the delimiter.
+# Sentence A and Sentence B are separated by the ||| delimiter for sentence
+# pair tasks like question answering and entailment.
+# For single sentence inputs, put one sentence per line and DON'T use the
+# delimiter.
 echo 'Who was Jim Henson ? ||| Jim Henson was a puppeteer' > /tmp/input.txt
 
 python extract_features.py \
