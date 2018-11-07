@@ -1,14 +1,16 @@
 # BERT
 
-**\*\*\*\*\* New November 5th, 2018: Third-party PyTorch version of BERT
-available \*\*\*\*\***
+**\*\*\*\*\* New November 5th, 2018: Third-party PyTorch and Chainer versions of
+BERT available \*\*\*\*\***
 
 NLP researchers from HuggingFace made a
 [PyTorch version of BERT available](https://github.com/huggingface/pytorch-pretrained-BERT)
 which is compatible with our pre-trained checkpoints and is able to reproduce
-our results. (Thanks!) We were not involved in the creation or maintenance of
-the PyTorch implementation so please direct any questions towards the authors of
-that repository.
+our results. Sosuke Kobayashi also made a
+[Chainer version of BERT available](https://github.com/soskek/bert-chainer)
+(Thanks!) We were not involved in the creation or maintenance of the PyTorch
+implementation so please direct any questions towards the authors of that
+repository.
 
 **\*\*\*\*\* New November 3rd, 2018: Multilingual and Chinese models available
 \*\*\*\*\***
@@ -831,7 +833,7 @@ repository.
 There is no official Chainer implementation. However, Sosuke Kobayashi made a
 [Chainer version of BERT available](https://github.com/soskek/bert-chainer)
 which is compatible with our pre-trained checkpoints and is able to reproduce
-our results. We were not involved in the creation or maintenance of the PyTorch
+our results. We were not involved in the creation or maintenance of the Chainer
 implementation so please direct any questions towards the authors of that
 repository.
 
