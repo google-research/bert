@@ -317,10 +317,13 @@ Note: You might see a message `Running train on CPU`. This really just means
 that it's running on something other than a Cloud TPU, which includes a GPU.
 
 #### Prediction from classifier
-Once you have trained your classifier you can use it in inference mode by using the --do_predict=true command.
-You need to have a file named test.tsv in the input folder. 
-Output will be created in file called test_results.tsv in the output folder.
-Each line will contain output for each sample, columns are the class probabilities.
+
+Once you have trained your classifier you can use it in inference mode by using
+the --do_predict=true command. You need to have a file named test.tsv in the
+input folder. Output will be created in file called test_results.tsv in the
+output folder. Each line will contain output for each sample, columns are the
+class probabilities.
+
 ```shell
 export BERT_BASE_DIR=/path/to/bert/uncased_L-12_H-768_A-12
 export GLUE_DIR=/path/to/glue
@@ -532,6 +535,12 @@ Note that this script will produce very large output files (by default, around
 If you need to maintain alignment between the original and tokenized words (for
 projecting training labels), see the [Tokenization](#tokenization) section
 below.
+
+**Note:** You may see a message like `Could not find trained model in model_dir:
+/tmp/tmpuB5g5c, running initialization to predict.` This message is expected, it
+just means that we are using the `init_from_checkpoint()` API rather than the
+saved model API. If you don't specify a checkpoint or specify an invalid
+checkpoint, this script will complain.
 
 ## Tokenization
 
@@ -812,6 +821,15 @@ information.
 There is no official PyTorch implementation. However, NLP researchers from
 HuggingFace made a
 [PyTorch version of BERT available](https://github.com/huggingface/pytorch-pretrained-BERT)
+which is compatible with our pre-trained checkpoints and is able to reproduce
+our results. We were not involved in the creation or maintenance of the PyTorch
+implementation so please direct any questions towards the authors of that
+repository.
+
+#### Is there a Chainer version available?
+
+There is no official Chainer implementation. However, Sosuke Kobayashi made a
+[Chainer version of BERT available](https://github.com/soskek/bert-chainer)
 which is compatible with our pre-trained checkpoints and is able to reproduce
 our results. We were not involved in the creation or maintenance of the PyTorch
 implementation so please direct any questions towards the authors of that
