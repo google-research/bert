@@ -264,7 +264,10 @@ class MnliProcessor(DataProcessor):
       guid = "%s-%s" % (set_type, tokenization.convert_to_unicode(line[0]))
       text_a = tokenization.convert_to_unicode(line[8])
       text_b = tokenization.convert_to_unicode(line[9])
-      label = tokenization.convert_to_unicode(line[-1])
+      if set_type == "test":
+        label = "contradiction"
+      else:
+        label = tokenization.convert_to_unicode(line[-1])
       examples.append(
           InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
     return examples
@@ -301,7 +304,10 @@ class MrpcProcessor(DataProcessor):
       guid = "%s-%s" % (set_type, i)
       text_a = tokenization.convert_to_unicode(line[3])
       text_b = tokenization.convert_to_unicode(line[4])
-      label = tokenization.convert_to_unicode(line[0])
+      if set_type == "test":
+        label = "0"
+      else:
+        label = tokenization.convert_to_unicode(line[0])
       examples.append(
           InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
     return examples
@@ -335,7 +341,10 @@ class ColaProcessor(DataProcessor):
     for (i, line) in enumerate(lines):
       guid = "%s-%s" % (set_type, i)
       text_a = tokenization.convert_to_unicode(line[3])
-      label = tokenization.convert_to_unicode(line[1])
+      if set_type == "test":
+        label = "0"
+      else:
+        label = tokenization.convert_to_unicode(line[1])
       examples.append(
           InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
     return examples
@@ -855,6 +864,7 @@ def main(_):
       for key in sorted(result.keys()):
         tf.logging.info("  %s = %s", key, str(result[key]))
         writer.write("%s = %s\n" % (key, str(result[key])))
+
   if FLAGS.do_predict:
     predict_examples = processor.get_test_examples(FLAGS.data_dir)
     predict_file = os.path.join(FLAGS.output_dir, "predict.tf_record")
