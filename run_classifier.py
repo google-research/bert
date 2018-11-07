@@ -858,7 +858,7 @@ def main(_):
   if FLAGS.do_predict:
     predict_examples = processor.get_test_examples(FLAGS.data_dir)
     predict_file = os.path.join(FLAGS.output_dir, "predict.tf_record")
-    convert_examples_to_features(predict_examples, label_list,
+    file_based_convert_examples_to_features(predict_examples, label_list,
                                  FLAGS.max_seq_length, tokenizer, predict_file)
 
     tf.logging.info("***** Running prediction*****")
@@ -871,7 +871,7 @@ def main(_):
       raise ValueError('Prediction in TPU not supported')
 
     predict_drop_remainder = True if FLAGS.use_tpu else False
-    predict_input_fn = input_fn_builder(
+    predict_input_fn = file_based_input_fn_builder(
       input_file=predict_file,
       seq_length=FLAGS.max_seq_length,
       is_training=False,
