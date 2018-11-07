@@ -27,6 +27,7 @@ import tensorflow as tf
 
 import h5py
 import numpy as np
+from tqdm import tqdm
 
 flags = tf.flags
 
@@ -398,7 +399,7 @@ def main(_):
   output_features = {}
   sentence_to_index = {}
   with h5py.File(FLAGS.output_file, "w") as fout:
-    for result in estimator.predict(input_fn, yield_single_examples=True):
+    for result in tqdm(estimator.predict(input_fn, yield_single_examples=True)):
       unique_id = int(result["unique_id"])
       unique_id_str = str(unique_id)
       sentence_to_index[
