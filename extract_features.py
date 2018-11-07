@@ -184,6 +184,8 @@ def model_fn_builder(bert_config, init_checkpoint, use_tpu,
       tf.train.init_from_checkpoint(init_checkpoint, assignment_map)
 
     all_layers = model.get_all_encoder_layers()
+    # Prepend the embeddings to all_layers
+    all_layers.insert(0, model.get_embedding_output())
 
     predictions = {
         "unique_id": unique_ids,
