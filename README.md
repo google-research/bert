@@ -1,6 +1,18 @@
 # BERT
 
-**\*\*\*\*\* New November 3rd, 2018: Multilingual and Chinese models avalable
+**\*\*\*\*\* New November 5th, 2018: Third-party PyTorch and Chainer versions of
+BERT available \*\*\*\*\***
+
+NLP researchers from HuggingFace made a
+[PyTorch version of BERT available](https://github.com/huggingface/pytorch-pretrained-BERT)
+which is compatible with our pre-trained checkpoints and is able to reproduce
+our results. Sosuke Kobayashi also made a
+[Chainer version of BERT available](https://github.com/soskek/bert-chainer)
+(Thanks!) We were not involved in the creation or maintenance of the PyTorch
+implementation so please direct any questions towards the authors of that
+repository.
+
+**\*\*\*\*\* New November 3rd, 2018: Multilingual and Chinese models available
 \*\*\*\*\***
 
 We have made two new BERT models available:
@@ -63,8 +75,8 @@ minutes.
 
 ## What is BERT?
 
-BERT is method of pre-training language representations, meaning that we train a
-general-purpose "language understanding" model on a large text corpus (like
+BERT is a method of pre-training language representations, meaning that we train
+a general-purpose "language understanding" model on a large text corpus (like
 Wikipedia), and then use that model for downstream NLP tasks that we care about
 (like question answering). BERT outperforms previous methods because it is the
 first *unsupervised*, *deeply bidirectional* system for pre-training NLP.
@@ -306,6 +318,30 @@ use BERT for any single-sentence or sentence-pair classification task.
 Note: You might see a message `Running train on CPU`. This really just means
 that it's running on something other than a Cloud TPU, which includes a GPU.
 
+#### Prediction from classifier
+
+Once you have trained your classifier you can use it in inference mode by using
+the --do_predict=true command. You need to have a file named test.tsv in the
+input folder. Output will be created in file called test_results.tsv in the
+output folder. Each line will contain output for each sample, columns are the
+class probabilities.
+
+```shell
+export BERT_BASE_DIR=/path/to/bert/uncased_L-12_H-768_A-12
+export GLUE_DIR=/path/to/glue
+export TRAINED_CLASSIFIER=/path/to/fine/tuned/classifier
+
+python run_classifier.py \
+  --task_name=MRPC \
+  --do_predict=true \
+  --data_dir=$GLUE_DIR/MRPC \
+  --vocab_file=$BERT_BASE_DIR/vocab.txt \
+  --bert_config_file=$BERT_BASE_DIR/bert_config.json \
+  --init_checkpoint=$TRAINED_CLASSIFIER \
+  --max_seq_length=128 \
+  --output_dir=/tmp/mrpc_output/
+```
+
 ### SQuAD
 
 The Stanford Question Answering Dataset (SQuAD) is a popular question answering
@@ -476,8 +512,10 @@ As an example, we include the script `extract_features.py` which can be used
 like this:
 
 ```shell
-# Sentence A and Sentence B are separated by the ||| delimiter.
-# For single sentence inputs, don't use the delimiter.
+# Sentence A and Sentence B are separated by the ||| delimiter for sentence
+# pair tasks like question answering and entailment.
+# For single sentence inputs, put one sentence per line and DON'T use the
+# delimiter.
 echo 'Who was Jim Henson ? ||| Jim Henson was a puppeteer' > /tmp/input.txt
 
 python extract_features.py \
@@ -501,6 +539,12 @@ Note that this script will produce very large output files (by default, around
 If you need to maintain alignment between the original and tokenized words (for
 projecting training labels), see the [Tokenization](#tokenization) section
 below.
+
+**Note:** You may see a message like `Could not find trained model in model_dir:
+/tmp/tmpuB5g5c, running initialization to predict.` This message is expected, it
+just means that we are using the `init_from_checkpoint()` API rather than the
+saved model API. If you don't specify a checkpoint or specify an invalid
+checkpoint, this script will complain.
 
 ## Tokenization
 
@@ -778,9 +822,22 @@ information.
 
 #### Is there a PyTorch version available?
 
-There is no official PyTorch implementation. If someone creates a line-for-line
-PyTorch reimplementation so that our pre-trained checkpoints can be directly
-converted, we would be happy to link to that PyTorch version here.
+There is no official PyTorch implementation. However, NLP researchers from
+HuggingFace made a
+[PyTorch version of BERT available](https://github.com/huggingface/pytorch-pretrained-BERT)
+which is compatible with our pre-trained checkpoints and is able to reproduce
+our results. We were not involved in the creation or maintenance of the PyTorch
+implementation so please direct any questions towards the authors of that
+repository.
+
+#### Is there a Chainer version available?
+
+There is no official Chainer implementation. However, Sosuke Kobayashi made a
+[Chainer version of BERT available](https://github.com/soskek/bert-chainer)
+which is compatible with our pre-trained checkpoints and is able to reproduce
+our results. We were not involved in the creation or maintenance of the Chainer
+implementation so please direct any questions towards the authors of that
+repository.
 
 #### Will models in other languages be released?
 
