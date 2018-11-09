@@ -71,7 +71,9 @@ flags.DEFINE_bool("do_train", False, "Whether to run training.")
 
 flags.DEFINE_bool("do_eval", False, "Whether to run eval on the dev set.")
 
-flags.DEFINE_bool("do_predict", False, "Whether to run the model in inference mode on the test set.")
+flags.DEFINE_bool(
+    "do_predict", False,
+    "Whether to run the model in inference mode on the test set.")
 
 flags.DEFINE_integer("train_batch_size", 32, "Total batch size for training.")
 
@@ -248,8 +250,7 @@ class MnliProcessor(DataProcessor):
   def get_test_examples(self, data_dir):
     """See base class."""
     return self._create_examples(
-      self._read_tsv(os.path.join(data_dir, "test_matched.tsv")),
-      "test")
+        self._read_tsv(os.path.join(data_dir, "test_matched.tsv")), "test")
 
   def get_labels(self):
     """See base class."""
@@ -289,7 +290,7 @@ class MrpcProcessor(DataProcessor):
   def get_test_examples(self, data_dir):
     """See base class."""
     return self._create_examples(
-      self._read_tsv(os.path.join(data_dir, "test.tsv")), "test")
+        self._read_tsv(os.path.join(data_dir, "test.tsv")), "test")
 
   def get_labels(self):
     """See base class."""
@@ -329,7 +330,7 @@ class ColaProcessor(DataProcessor):
   def get_test_examples(self, data_dir):
     """See base class."""
     return self._create_examples(
-      self._read_tsv(os.path.join(data_dir, "test.tsv")), "test")
+        self._read_tsv(os.path.join(data_dir, "test.tsv")), "test")
 
   def get_labels(self):
     """See base class."""
@@ -659,9 +660,7 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
           scaffold_fn=scaffold_fn)
     else:
       output_spec = tf.contrib.tpu.TPUEstimatorSpec(
-          mode=mode,
-          predictions=probabilities,
-          scaffold_fn=scaffold_fn)
+          mode=mode, predictions=probabilities, scaffold_fn=scaffold_fn)
     return output_spec
 
   return model_fn
@@ -874,7 +873,8 @@ def main(_):
     predict_examples = processor.get_test_examples(FLAGS.data_dir)
     predict_file = os.path.join(FLAGS.output_dir, "predict.tf_record")
     file_based_convert_examples_to_features(predict_examples, label_list,
-                                 FLAGS.max_seq_length, tokenizer, predict_file)
+                                            FLAGS.max_seq_length, tokenizer,
+                                            predict_file)
 
     tf.logging.info("***** Running prediction*****")
     tf.logging.info("  Num examples = %d", len(predict_examples))
@@ -887,10 +887,10 @@ def main(_):
 
     predict_drop_remainder = True if FLAGS.use_tpu else False
     predict_input_fn = file_based_input_fn_builder(
-      input_file=predict_file,
-      seq_length=FLAGS.max_seq_length,
-      is_training=False,
-      drop_remainder=predict_drop_remainder)
+        input_file=predict_file,
+        seq_length=FLAGS.max_seq_length,
+        is_training=False,
+        drop_remainder=predict_drop_remainder)
 
     result = estimator.predict(input_fn=predict_input_fn)
 
@@ -898,8 +898,10 @@ def main(_):
     with tf.gfile.GFile(output_predict_file, "w") as writer:
       tf.logging.info("***** Predict results *****")
       for prediction in result:
-        output_line = "\t".join(str(class_probability) for class_probability in prediction) + "\n"
+        output_line = "\t".join(
+            str(class_probability) for class_probability in prediction) + "\n"
         writer.write(output_line)
+
 
 if __name__ == "__main__":
   flags.mark_flag_as_required("data_dir")
