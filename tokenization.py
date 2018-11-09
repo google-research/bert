@@ -90,6 +90,14 @@ def convert_by_vocab(vocab, items):
   return output
 
 
+def convert_tokens_to_ids(vocab, tokens):
+  return convert_by_vocab(vocab, tokens)
+
+
+def convert_ids_to_tokens(inv_vocab, ids):
+  return convert_by_vocab(inv_vocab, ids)
+
+
 def whitespace_tokenize(text):
   """Runs basic whitespace cleaning and splitting on a peice of text."""
   text = text.strip()
