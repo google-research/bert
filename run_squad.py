@@ -163,9 +163,6 @@ class SquadExample(object):
     self.start_position = start_position
     self.end_position = end_position
 
-  def __str__(self):
-    return self.__repr__()
-
   def __repr__(self):
     s = ""
     s += "qas_id: %s" % (tokenization.printable_text(self.qas_id))

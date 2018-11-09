@@ -73,7 +73,7 @@ class TrainingInstance(object):
     self.masked_lm_positions = masked_lm_positions
     self.masked_lm_labels = masked_lm_labels
 
-  def __str__(self):
+  def __repr__(self):
     s = ""
     s += "tokens: %s\n" % (" ".join(
         tokenization.printable_text(x) for x in self.tokens))
@@ -85,9 +85,6 @@ class TrainingInstance(object):
         tokenization.printable_text(x) for x in self.masked_lm_labels))
     s += "\n"
     return s
-
-  def __repr__(self):
-    return self.__str__()
 
 
 def write_instance_to_example_files(instances, tokenizer, max_seq_length,
