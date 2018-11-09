@@ -184,10 +184,7 @@ class DataProcessor(object):
     """Reads a tab separated value file."""
     with tf.gfile.Open(input_file, "r") as f:
       reader = csv.reader(f, delimiter="\t", quotechar=quotechar)
-      lines = []
-      for line in reader:
-        lines.append(line)
-      return lines
+      return list(reader)
 
 
 class XnliProcessor(DataProcessor):
