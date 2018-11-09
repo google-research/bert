@@ -187,7 +187,7 @@ class BertModelTest(tf.test.TestCase):
 
     self.assertEqual(
         len(unreachable), 0, "The following ops are unreachable: %s" %
-        (" ".join([x.name for x in unreachable])))
+        (" ".join(x.name for x in unreachable)))
 
   @classmethod
   def get_unreachable_ops(cls, graph, outputs):

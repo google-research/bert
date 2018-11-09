@@ -76,13 +76,13 @@ class TrainingInstance(object):
   def __str__(self):
     s = ""
     s += "tokens: %s\n" % (" ".join(
-        [tokenization.printable_text(x) for x in self.tokens]))
-    s += "segment_ids: %s\n" % (" ".join([str(x) for x in self.segment_ids]))
+        tokenization.printable_text(x) for x in self.tokens))
+    s += "segment_ids: %s\n" % (" ".join(str(x) for x in self.segment_ids))
     s += "is_random_next: %s\n" % self.is_random_next
     s += "masked_lm_positions: %s\n" % (" ".join(
-        [str(x) for x in self.masked_lm_positions]))
+        str(x) for x in self.masked_lm_positions))
     s += "masked_lm_labels: %s\n" % (" ".join(
-        [tokenization.printable_text(x) for x in self.masked_lm_labels]))
+        tokenization.printable_text(x) for x in self.masked_lm_labels))
     s += "\n"
     return s
 
@@ -145,7 +145,7 @@ def write_instance_to_example_files(instances, tokenizer, max_seq_length,
     if inst_index < 20:
       tf.logging.info("*** Example ***")
       tf.logging.info("tokens: %s" % " ".join(
-          [tokenization.printable_text(x) for x in instance.tokens]))
+          tokenization.printable_text(x) for x in instance.tokens))
 
       for feature_name in features.keys():
         feature = features[feature_name]
@@ -155,7 +155,7 @@ def write_instance_to_example_files(instances, tokenizer, max_seq_length,
         elif feature.float_list.value:
           values = feature.float_list.value
         tf.logging.info(
-            "%s: %s" % (feature_name, " ".join([str(x) for x in values])))
+            "%s: %s" % (feature_name, " ".join(str(x) for x in values)))
 
   for writer in writers:
     writer.close()
