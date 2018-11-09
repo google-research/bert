@@ -30,7 +30,7 @@ class TokenizationTest(tf.test.TestCase):
         "[UNK]", "[CLS]", "[SEP]", "want", "##want", "##ed", "wa", "un", "runn",
         "##ing", ","
     ]
-    with tempfile.NamedTemporaryFile(delete=False) as vocab_writer:
+    with tempfile.NamedTemporaryFile(mode='w+', delete=False) as vocab_writer:
       vocab_writer.write("".join([x + "\n" for x in vocab_tokens]))
 
       vocab_file = vocab_writer.name
