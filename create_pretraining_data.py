@@ -24,6 +24,8 @@ import random
 import tokenization
 import tensorflow as tf
 
+from utils import zero_pad
+
 flags = tf.flags
 
 FLAGS = flags.FLAGS
@@ -103,10 +105,7 @@ def write_instance_to_example_files(instances, tokenizer, max_seq_length,
     segment_ids = list(instance.segment_ids)
     assert len(input_ids) <= max_seq_length
 
-    while len(input_ids) < max_seq_length:
-      input_ids.append(0)
-      input_mask.append(0)
-      segment_ids.append(0)
+    zero_pad(max_seq_length, input_ids, input_mask, segment_ids)
 
     assert len(input_ids) == max_seq_length
     assert len(input_mask) == max_seq_length
@@ -116,10 +115,8 @@ def write_instance_to_example_files(instances, tokenizer, max_seq_length,
     masked_lm_ids = tokenizer.convert_tokens_to_ids(instance.masked_lm_labels)
     masked_lm_weights = [1.0] * len(masked_lm_ids)
 
-    while len(masked_lm_positions) < max_predictions_per_seq:
-      masked_lm_positions.append(0)
-      masked_lm_ids.append(0)
-      masked_lm_weights.append(0.0)
+    zero_pad(max_predictions_per_seq, masked_lm_positions, masked_lm_ids)
+    zero_pad(max_predictions_per_seq, masked_lm_weights, value=0.0)
 
     next_sentence_label = 1 if instance.is_random_next else 0
 

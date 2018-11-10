@@ -27,6 +27,8 @@ import modeling
 import tokenization
 import tensorflow as tf
 
+from utils import zero_pad
+
 flags = tf.flags
 
 FLAGS = flags.FLAGS
@@ -258,12 +260,7 @@ def convert_examples_to_features(examples, seq_length, tokenizer):
     # tokens are attended to.
     input_mask = [1] * len(input_ids)
 
-    # Zero-pad up to the sequence length.
-    remaining = seq_length - input_ids
-    if input_ids > 0:
-      input_ids += [0] * remaining
-      input_mask += [0] * remaining
-      input_type_ids += [0] * remaining
+    zero_pad(seq_length, input_ids, input_mask, input_type_ids)
 
     assert len(input_ids) == seq_length
     assert len(input_mask) == seq_length

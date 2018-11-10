@@ -26,6 +26,8 @@ import optimization
 import tokenization
 import tensorflow as tf
 
+from utils import zero_pad
+
 flags = tf.flags
 
 FLAGS = flags.FLAGS
@@ -386,11 +388,7 @@ def convert_single_example(ex_index, example, label_list, max_seq_length,
   # tokens are attended to.
   input_mask = [1] * len(input_ids)
 
-  # Zero-pad up to the sequence length.
-  while len(input_ids) < max_seq_length:
-    input_ids.append(0)
-    input_mask.append(0)
-    segment_ids.append(0)
+  zero_pad(max_seq_length, input_ids, input_mask, segment_ids)
 
   assert len(input_ids) == max_seq_length
   assert len(input_mask) == max_seq_length
