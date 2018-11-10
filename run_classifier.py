@@ -26,7 +26,7 @@ import optimization
 import tokenization
 import tensorflow as tf
 
-from utils import zero_pad
+from utils import zero_pad, _truncate_seq_pair, _decode_record
 
 flags = tf.flags
 
@@ -441,19 +441,6 @@ def file_based_input_fn_builder(input_file, seq_length, is_training,
       "label_ids": tf.FixedLenFeature([], tf.int64),
   }
 
-  def _decode_record(record, name_to_features):
-    """Decodes a record to a TensorFlow example."""
-    example = tf.parse_single_example(record, name_to_features)
-
-    # tf.Example only supports tf.int64, but the TPU only supports tf.int32.
-    # So cast all int64 to int32.
-    for name in list(example.keys()):
-      t = example[name]
-      if t.dtype == tf.int64:
-        t = tf.to_int32(t)
-      example[name] = t
-
-    return example
 
   def input_fn(params):
     """The actual input function."""
@@ -475,23 +462,6 @@ def file_based_input_fn_builder(input_file, seq_length, is_training,
     return d
 
   return input_fn
-
-
-def _truncate_seq_pair(tokens_a, tokens_b, max_length):
-  """Truncates a sequence pair in place to the maximum length."""
-
-  # This is a simple heuristic which will always truncate the longer sequence
-  # one token at a time. This makes more sense than truncating an equal percent
-  # of tokens from each, since if one sequence is very short then each token
-  # that's truncated likely contains more information than a longer sequence.
-  while True:
-    total_length = len(tokens_a) + len(tokens_b)
-    if total_length <= max_length:
-      break
-    if len(tokens_a) > len(tokens_b):
-      tokens_a.pop()
-    else:
-      tokens_b.pop()
 
 
 def create_model(bert_config, is_training, input_ids, input_mask, segment_ids,

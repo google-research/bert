@@ -366,20 +366,11 @@ def create_masked_lm_predictions(tokens, masked_lm_prob,
 
 def truncate_seq_pair(tokens_a, tokens_b, max_num_tokens, rng):
   """Truncates a pair of sequences to a maximum sequence length."""
-  while True:
-    total_length = len(tokens_a) + len(tokens_b)
-    if total_length <= max_num_tokens:
-      break
-
-    trunc_tokens = tokens_a if len(tokens_a) > len(tokens_b) else tokens_b
-    assert len(trunc_tokens) >= 1
-
+  while len(tokens_a) + len(tokens_b) > max_num_tokens:
+    trunc_tokens = max(tokens_a, tokens_b, key=len)
     # We want to sometimes truncate from the front and sometimes from the
     # back to add more randomness and avoid biases.
-    if rng.random() < 0.5:
-      del trunc_tokens[0]
-    else:
-      trunc_tokens.pop()
+    trunc_tokens.pop(rng.choice(0, -1))
 
 
 def main(_):
