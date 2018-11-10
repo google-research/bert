@@ -158,9 +158,7 @@ class BertModel(object):
       config.hidden_dropout_prob = 0.0
       config.attention_probs_dropout_prob = 0.0
 
-    input_shape = get_shape_list(input_ids, expected_rank=2)
-    batch_size = input_shape[0]
-    seq_length = input_shape[1]
+    batch_size, seq_length = get_shape_list(input_ids, expected_rank=2)
 
     if input_mask is None:
       input_mask = tf.ones(shape=[batch_size, seq_length], dtype=tf.int32)
@@ -316,7 +314,7 @@ def get_activation(activation_string):
 
 def get_assignment_map_from_checkpoint(tvars, init_checkpoint):
   """Compute the union of the current variables and checkpoint variables."""
-  assignment_map = {}
+  assignment_map = collections.OrderedDict()
   initialized_variable_names = {}
 
   name_to_variable = collections.OrderedDict()
@@ -329,9 +327,7 @@ def get_assignment_map_from_checkpoint(tvars, init_checkpoint):
 
   init_vars = tf.train.list_variables(init_checkpoint)
 
-  assignment_map = collections.OrderedDict()
-  for x in init_vars:
-    (name, var) = (x[0], x[1])
+  for name, var in init_vars:
     if name not in name_to_variable:
       continue
     assignment_map[name] = name
@@ -463,10 +459,7 @@ def embedding_postprocessor(input_tensor,
   Raises:
     ValueError: One of the tensor shapes or input values is invalid.
   """
-  input_shape = get_shape_list(input_tensor, expected_rank=3)
-  batch_size = input_shape[0]
-  seq_length = input_shape[1]
-  width = input_shape[2]
+  batch_size, seq_length, width = get_shape_list(input_tensor, expected_rank=3)
 
   if seq_length > max_position_embeddings:
     raise ValueError("The seq length (%d) cannot be greater than "
@@ -543,8 +536,7 @@ def create_attention_mask_from_input_mask(from_tensor, to_mask):
   batch_size = from_shape[0]
   from_seq_length = from_shape[1]
 
-  to_shape = get_shape_list(to_mask, expected_rank=2)
-  to_seq_length = to_shape[1]
+  _, to_seq_length = get_shape_list(to_mask, expected_rank=2)
 
   to_mask = tf.cast(
       tf.reshape(to_mask, [batch_size, 1, to_seq_length]), tf.float32)
@@ -814,9 +806,7 @@ def transformer_model(input_tensor,
 
   attention_head_size = int(hidden_size / num_attention_heads)
   input_shape = get_shape_list(input_tensor, expected_rank=3)
-  batch_size = input_shape[0]
-  seq_length = input_shape[1]
-  input_width = input_shape[2]
+  batch_size, seq_length, input_width = input_shape
 
   # The Transformer performs sum residuals on all layers so the input needs
   # to be the same as the hidden size.
