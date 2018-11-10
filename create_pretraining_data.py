@@ -350,17 +350,10 @@ def create_masked_lm_predictions(tokens, masked_lm_prob,
         masked_token = vocab_words[rng.randint(0, len(vocab_words) - 1)]
 
     output_tokens[index] = masked_token
-
     masked_lms.append(masked_lm(index=index, label=tokens[index]))
 
   masked_lms = sorted(masked_lms, key=lambda x: x.index)
-
-  masked_lm_positions = []
-  masked_lm_labels = []
-  for p in masked_lms:
-    masked_lm_positions.append(p.index)
-    masked_lm_labels.append(p.label)
-
+  masked_lm_positions, masked_lm_labels = map(list, zip(*masked_lms))
   return (output_tokens, masked_lm_positions, masked_lm_labels)
 
 
