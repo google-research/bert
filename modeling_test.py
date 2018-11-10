@@ -173,14 +173,8 @@ class BertModelTest(tf.test.TestCase):
     unreachable = self.get_unreachable_ops(graph, outputs)
     filtered_unreachable = []
     for x in unreachable:
-      do_ignore = False
-      for r in ignore_regexes:
-        m = r.match(x.name)
-        if m is not None:
-          do_ignore = True
-      if do_ignore:
-        continue
-      filtered_unreachable.append(x)
+      if all(r.match(x.name) is None for r in ignore_regexes):
+        filtered_unreachable.append(x)
     unreachable = filtered_unreachable
 
     self.assertEqual(
@@ -241,13 +235,11 @@ class BertModelTest(tf.test.TestCase):
 
     unreachable_ops = []
     for op in graph.get_operations():
-      is_unreachable = False
       all_names = [x.name for x in op.inputs] + [x.name for x in op.outputs]
       for name in all_names:
         if name not in seen_tensors:
-          is_unreachable = True
-      if is_unreachable:
-        unreachable_ops.append(op)
+          unreachable_ops.append(op)
+          break
     return unreachable_ops
 
   @classmethod
