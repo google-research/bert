@@ -245,14 +245,12 @@ class BertModelTest(tf.test.TestCase):
   @classmethod
   def flatten_recursive(cls, item):
     """Flattens (potentially nested) a tuple/dictionary/list to a list."""
-    output = []
     if isinstance(item, list):
-      output.extend(item)
+      output = item
     elif isinstance(item, tuple):
-      output.extend(list(item))
+      output = list(item)
     elif isinstance(item, dict):
-      for (_, v) in six.iteritems(item):
-        output.append(v)
+      output = item.values()
     else:
       return [item]
 
