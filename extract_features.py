@@ -288,19 +288,11 @@ def read_examples(input_file):
   examples = []
   unique_id = 0
   with tf.gfile.GFile(input_file, "r") as reader:
-    while True:
-      line = tokenization.convert_to_unicode(reader.readline())
-      if not line:
-        break
-      line = line.strip()
-      text_a = None
-      text_b = None
-      m = re.match(r"^(.*) \|\|\| (.*)$", line)
-      if m is None:
-        text_a = line
-      else:
-        text_a = m.group(1)
-        text_b = m.group(2)
+    for line in reader:
+      line = tokenization.convert_to_unicode(line).strip()
+      text_a, _, text_b = line.rpartition(" ||| ")
+      if not text_b:  # text_b == '' if there is no separator
+        text_b = None
       examples.append(
           InputExample(unique_id=unique_id, text_a=text_a, text_b=text_b))
       unique_id += 1

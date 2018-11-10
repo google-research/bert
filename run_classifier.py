@@ -185,8 +185,7 @@ class DataProcessor(object):
   def _read_tsv(cls, input_file, quotechar=None):
     """Reads a tab separated value file."""
     with tf.gfile.Open(input_file, "r") as f:
-      reader = csv.reader(f, delimiter="\t", quotechar=quotechar)
-      return list(reader)
+      return csv.reader(f, delimiter="\t", quotechar=quotechar)
 
 
 class XnliProcessor(DataProcessor):
