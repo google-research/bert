@@ -365,22 +365,12 @@ def convert_single_example(ex_index, example, label_list, max_seq_length,
   # For classification tasks, the first vector (corresponding to [CLS]) is
   # used as as the "sentence vector". Note that this only makes sense because
   # the entire model is fine-tuned.
-  tokens = []
-  segment_ids = []
-  tokens.append("[CLS]")
-  segment_ids.append(0)
-  for token in tokens_a:
-    tokens.append(token)
-    segment_ids.append(0)
-  tokens.append("[SEP]")
-  segment_ids.append(0)
+  tokens = ["[CLS]", *tokens_a, "[SEP]"]
+  segment_ids = [0] * len(tokens)
 
   if tokens_b:
-    for token in tokens_b:
-      tokens.append(token)
-      segment_ids.append(1)
-    tokens.append("[SEP]")
-    segment_ids.append(1)
+    tokens += [*tokens_b, "[SEP]"]
+    segment_ids += [1] * (len(tokens_b) + 1)
 
   input_ids = tokenizer.convert_tokens_to_ids(tokens)
 

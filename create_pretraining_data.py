@@ -290,22 +290,8 @@ def create_instances_from_document(
         assert len(tokens_a) >= 1
         assert len(tokens_b) >= 1
 
-        tokens = []
-        segment_ids = []
-        tokens.append("[CLS]")
-        segment_ids.append(0)
-        for token in tokens_a:
-          tokens.append(token)
-          segment_ids.append(0)
-
-        tokens.append("[SEP]")
-        segment_ids.append(0)
-
-        for token in tokens_b:
-          tokens.append(token)
-          segment_ids.append(1)
-        tokens.append("[SEP]")
-        segment_ids.append(1)
+        tokens = ["[CLS]", *tokens_a, "[SEP]", *tokens_b, "[SEP]"]
+        segment_ids = [0] * (len(tokens_a) + 2) + [1] * (len(tokens_b) + 1)
 
         (tokens, masked_lm_positions,
          masked_lm_labels) = create_masked_lm_predictions(
@@ -330,9 +316,8 @@ def create_masked_lm_predictions(tokens, masked_lm_prob,
 
   cand_indexes = []
   for (i, token) in enumerate(tokens):
-    if token == "[CLS]" or token == "[SEP]":
-      continue
-    cand_indexes.append(i)
+    if token not in ("[CLS]", "[SEP]"):
+      cand_indexes.append(i)
 
   rng.shuffle(cand_indexes)
 

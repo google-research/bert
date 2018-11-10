@@ -330,17 +330,10 @@ def convert_examples_to_features(examples, tokenizer, max_seq_length,
       start_offset += min(length, doc_stride)
 
     for (doc_span_index, doc_span) in enumerate(doc_spans):
-      tokens = []
+      tokens = ["[CLS]", *query_tokens, "[SEP]"]
       token_to_orig_map = {}
       token_is_max_context = {}
-      segment_ids = []
-      tokens.append("[CLS]")
-      segment_ids.append(0)
-      for token in query_tokens:
-        tokens.append(token)
-        segment_ids.append(0)
-      tokens.append("[SEP]")
-      segment_ids.append(0)
+      segment_ids = [0] * len(tokens)
 
       for i in range(doc_span.length):
         split_token_index = doc_span.start + i

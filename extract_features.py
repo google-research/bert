@@ -218,16 +218,13 @@ def convert_examples_to_features(examples, seq_length, tokenizer):
     tokens_b = None
     if example.text_b:
       tokens_b = tokenizer.tokenize(example.text_b)
-
-    if tokens_b:
       # Modifies `tokens_a` and `tokens_b` in place so that the total
       # length is less than the specified length.
       # Account for [CLS], [SEP], [SEP] with "- 3"
       _truncate_seq_pair(tokens_a, tokens_b, seq_length - 3)
     else:
       # Account for [CLS] and [SEP] with "- 2"
-      if len(tokens_a) > seq_length - 2:
-        tokens_a = tokens_a[0:(seq_length - 2)]
+      tokens_a = tokens_a[:(seq_length - 2)]
 
     # The convention in BERT is:
     # (a) For sequence pairs:
