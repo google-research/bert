@@ -184,18 +184,16 @@ def create_training_instances(input_files, tokenizer, max_seq_length,
   # that the "next sentence prediction" task doesn't span between documents.
   for input_file in input_files:
     with tf.gfile.GFile(input_file, "r") as reader:
-      while True:
-        line = tokenization.convert_to_unicode(reader.readline())
-        if not line:
-          break
-        line = line.strip()
+      for line in reader:
+        line = tokenization.convert_to_unicode(line).strip()
 
         # Empty lines are used as document delimiters
         if not line:
           all_documents.append([])
-        tokens = tokenizer.tokenize(line)
-        if tokens:
-          all_documents[-1].append(tokens)
+        else:
+          tokens = tokenizer.tokenize(line)
+          if tokens:
+            all_documents[-1].append(tokens)
 
   # Remove empty documents
   all_documents = [x for x in all_documents if x]
