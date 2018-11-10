@@ -77,10 +77,17 @@ def load_vocab(vocab_file):
   return vocab
 
 
+def convert_by_vocab(vocab, items):
+  """Converts a sequence of [tokens|ids] using the vocab."""
+  return [vocab[item] for item in items]
+
+
 def convert_tokens_to_ids(vocab, tokens):
-  """Converts a sequence of tokens into ids using the vocab."""
-  ids = [vocab[token] for token in tokens]
-  return ids
+  return convert_by_vocab(vocab, tokens)
+
+
+def convert_ids_to_tokens(inv_vocab, ids):
+  return convert_by_vocab(inv_vocab, ids)
 
 
 def whitespace_tokenize(text):
@@ -97,6 +104,7 @@ class FullTokenizer(object):
 
   def __init__(self, vocab_file, do_lower_case=True):
     self.vocab = load_vocab(vocab_file)
+    self.inv_vocab = {v: k for k, v in self.vocab.items()}
     self.basic_tokenizer = BasicTokenizer(do_lower_case=do_lower_case)
     self.wordpiece_tokenizer = WordpieceTokenizer(vocab=self.vocab)
 
@@ -108,7 +116,10 @@ class FullTokenizer(object):
     return split_tokens
 
   def convert_tokens_to_ids(self, tokens):
-    return convert_tokens_to_ids(self.vocab, tokens)
+    return convert_by_vocab(self.vocab, tokens)
+
+  def convert_ids_to_tokens(self, ids):
+    return convert_by_vocab(self.inv_vocab, ids)
 
 
 class BasicTokenizer(object):
