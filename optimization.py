@@ -18,7 +18,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import re
 import tensorflow as tf
 
 
@@ -157,15 +156,9 @@ class AdamWeightDecayOptimizer(tf.train.Optimizer):
     """Whether to use L2 weight decay for `param_name`."""
     if not self.weight_decay_rate:
       return False
-    if self.exclude_from_weight_decay:
-      for r in self.exclude_from_weight_decay:
-        if re.search(r, param_name) is not None:
-          return False
-    return True
+    return all(excluded not in param_name for excluded in (self.exclude_from_weight_decay or []))
 
   def _get_variable_name(self, param_name):
     """Get the variable name from the tensor name."""
-    m = re.match("^(.*):\\d+$", param_name)
-    if m is not None:
-      param_name = m.group(1)
+    param_name, _, _ = param_name.rpartition(":")
     return param_name
