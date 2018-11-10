@@ -300,15 +300,14 @@ def get_activation(activation_string):
     return None
 
   act = activation_string.lower()
-  if act == "linear":
-    return None
-  elif act == "relu":
-    return tf.nn.relu
-  elif act == "gelu":
-    return gelu
-  elif act == "tanh":
-    return tf.tanh
-  else:
+  try:
+    return {
+      "linear": None,
+      "relu": tf.nn.relu,
+      "gelu": gelu,
+      "tanh": tf.tanh,
+    }[act]
+  except KeyError:
     raise ValueError("Unsupported activation: %s" % act)
 
 
