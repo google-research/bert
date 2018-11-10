@@ -153,9 +153,7 @@ class BertModelTest(tf.test.TestCase):
     for dim in shape:
       total_dims *= dim
 
-    values = []
-    for _ in range(total_dims):
-      values.append(rng.randint(0, vocab_size - 1))
+    values = [rng.randint(0, vocab_size - 1) for _ in range(total_dims)]
 
     return tf.constant(value=values, dtype=tf.int32, shape=shape, name=name)
 

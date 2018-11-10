@@ -329,9 +329,7 @@ def main(_):
   features = convert_examples_to_features(
       examples=examples, seq_length=FLAGS.max_seq_length, tokenizer=tokenizer)
 
-  unique_id_to_feature = {}
-  for feature in features:
-    unique_id_to_feature[feature.unique_id] = feature
+  unique_id_to_feature = {feature.unique_id: feature for feature in features}
 
   model_fn = model_fn_builder(
       bert_config=bert_config,

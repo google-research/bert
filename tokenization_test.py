@@ -72,9 +72,7 @@ class TokenizationTest(tf.test.TestCase):
         "##ing"
     ]
 
-    vocab = {}
-    for (i, token) in enumerate(vocab_tokens):
-      vocab[token] = i
+    vocab = {token: i for i, token in enumerate(vocab_tokens)}
     tokenizer = tokenization.WordpieceTokenizer(vocab=vocab)
 
     self.assertAllEqual(tokenizer.tokenize(""), [])
@@ -92,9 +90,7 @@ class TokenizationTest(tf.test.TestCase):
         "##ing"
     ]
 
-    vocab = {}
-    for (i, token) in enumerate(vocab_tokens):
-      vocab[token] = i
+    vocab = {token: i for i, token in enumerate(vocab_tokens)}
 
     self.assertAllEqual(
         tokenization.convert_tokens_to_ids(

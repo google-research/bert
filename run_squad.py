@@ -870,9 +870,8 @@ def get_final_text(pred_text, orig_text, do_lower_case):
 
   # We then project the characters in `pred_text` back to `orig_text` using
   # the character-to-character alignment.
-  tok_s_to_ns_map = {}
-  for (i, tok_index) in six.iteritems(tok_ns_to_s_map):
-    tok_s_to_ns_map[tok_index] = i
+  tok_s_to_ns_map = {tok_index: i for i, tok_index in
+      six.iteritems(tok_ns_to_s_map)}
 
   orig_start_position = None
   if start_position in tok_s_to_ns_map:
