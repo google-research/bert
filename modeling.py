@@ -22,7 +22,6 @@ import collections
 import copy
 import json
 import math
-import re
 import six
 import tensorflow as tf
 
@@ -318,10 +317,7 @@ def get_assignment_map_from_checkpoint(tvars, init_checkpoint):
 
   name_to_variable = collections.OrderedDict()
   for var in tvars:
-    name = var.name
-    m = re.match("^(.*):\\d+$", name)
-    if m is not None:
-      name = m.group(1)
+    name, _, _ = var.name.rpartition(":")
     name_to_variable[name] = var
 
   init_vars = tf.train.list_variables(init_checkpoint)
