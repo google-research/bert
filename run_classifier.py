@@ -333,8 +333,6 @@ def convert_single_example(ex_index, example, label_list, max_seq_length,
   tokens_b = None
   if example.text_b:
     tokens_b = tokenizer.tokenize(example.text_b)
-
-  if tokens_b:
     # Modifies `tokens_a` and `tokens_b` in place so that the total
     # length is less than the specified length.
     # Account for [CLS], [SEP], [SEP] with "- 3"
@@ -558,7 +556,8 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
       train_op = optimization.create_optimizer(
           total_loss, learning_rate, num_train_steps, num_warmup_steps, use_tpu)
 
-      logging_hook = tf.train.LoggingTensorHook({"loss": total_loss}, every_n_iter=10)
+      logging_hook = tf.train.LoggingTensorHook(
+          {"loss": total_loss}, every_n_iter=10)
       output_spec = tf.contrib.tpu.TPUEstimatorSpec(
           mode=mode,
           loss=total_loss,
@@ -823,7 +822,7 @@ def main(_):
     with tf.gfile.GFile(output_predict_file, "w") as writer:
       tf.logging.info("***** Predict results *****")
       for prediction in result:
-        output_line = "\t".join(str(class_probability) for class_probability in prediction) + "\n"
+        output_line = "\t".join(map(str, prediction)) + "\n"
         writer.write(output_line)
 
 if __name__ == "__main__":

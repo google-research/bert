@@ -699,20 +699,14 @@ def write_predictions(all_examples, all_features, all_results, n_best_size,
           # We could hypothetically create invalid predictions, e.g., predict
           # that the start of the span is in the question. We throw out all
           # invalid predictions.
-          if start_index >= len(feature.tokens):
-            continue
-          if end_index >= len(feature.tokens):
-            continue
-          if start_index not in feature.token_to_orig_map:
-            continue
-          if end_index not in feature.token_to_orig_map:
-            continue
-          if not feature.token_is_max_context.get(start_index, False):
-            continue
-          if end_index < start_index:
-            continue
           length = end_index - start_index + 1
-          if length > max_answer_length:
+          if (start_index >= len(feature.tokens)
+              or end_index >= len(feature.tokens)
+              or start_index not in feature.token_to_orig_map
+              or end_index not in feature.token_to_orig_map
+              or not feature.token_is_max_context.get(start_index, False)
+              or end_index < start_index
+              or length > max_answer_length):
             continue
           prelim_predictions.append(
               _PrelimPrediction(
@@ -867,22 +861,14 @@ def get_final_text(pred_text, orig_text, do_lower_case):
   tok_s_to_ns_map = {tok_index: i for i, tok_index in
       six.iteritems(tok_ns_to_s_map)}
 
-  orig_start_position = None
-  if start_position in tok_s_to_ns_map:
-    ns_start_position = tok_s_to_ns_map[start_position]
-    if ns_start_position in orig_ns_to_s_map:
-      orig_start_position = orig_ns_to_s_map[ns_start_position]
+  orig_start_position = orig_ns_to_s_map.get(tok_s_to_ns_map.get(start_position))
 
   if orig_start_position is None:
     if FLAGS.verbose_logging:
       tf.logging.info("Couldn't map start position")
     return orig_text
 
-  orig_end_position = None
-  if end_position in tok_s_to_ns_map:
-    ns_end_position = tok_s_to_ns_map[end_position]
-    if ns_end_position in orig_ns_to_s_map:
-      orig_end_position = orig_ns_to_s_map[ns_end_position]
+  orig_end_position = orig_ns_to_s_map.get(tok_s_to_ns_map.get(end_position))
 
   if orig_end_position is None:
     if FLAGS.verbose_logging:
