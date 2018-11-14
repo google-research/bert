@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 
-export BERT_BASE_DIR=/Users/henan.wang/Documents/workspace/dataset/bert_model/uncased_L-12_H-768_A-12
-export GLUE_DIR=/Users/henan.wang/Documents/workspace/dataset/glue_data
+#export BERT_BASE_DIR=/Users/henan.wang/Documents/workspace/dataset/bert_model/uncased_L-12_H-768_A-12
+#export GLUE_DIR=/Users/henan.wang/Documents/workspace/dataset/glue_data
+export BERT_BASE_DIR=/home/ubuntu/bert_model/uncased_L-12_H-768_A-12
+export GLUE_DIR=/home/ubuntu/glue_data
 
 python run_classifier.py \
   --task_name=MRPC \
