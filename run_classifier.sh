@@ -17,4 +17,5 @@ python run_classifier.py \
   --train_batch_size=32 \
   --learning_rate=2e-5 \
   --num_train_epochs=3.0 \
-  --output_dir=/tmp/mrpc_output/
+  --output_dir=/tmp/mrpc_output/ \
+  --use_tpu=True
