@@ -1,5 +1,11 @@
 # BERT
 
+**\*\*\*\*\* New November 15th, 2018: SOTA SQuAD 2.0 System \*\*\*\*\***
+
+We released code changes to reproduce our 83% F1 SQuAD 2.0 system, which is
+currently 1st place on the leaderboard by 3%. See the SQuAD 2.0 section of the
+README for details.
+
 **\*\*\*\*\* New November 5th, 2018: Third-party PyTorch and Chainer versions of
 BERT available \*\*\*\*\***
 
@@ -342,7 +348,7 @@ python run_classifier.py \
   --output_dir=/tmp/mrpc_output/
 ```
 
-### SQuAD
+### SQuAD 1.1
 
 The Stanford Question Answering Dataset (SQuAD) is a popular question answering
 benchmark dataset. BERT (at the time of the release) obtains state-of-the-art
@@ -434,6 +440,78 @@ If you fine-tune for one epoch on
 [TriviaQA](http://nlp.cs.washington.edu/triviaqa/) before this the results will
 be even better, but you will need to convert TriviaQA into the SQuAD json
 format.
+
+### SQuAD 2.0
+
+This model is also implemented and documented in `run_squad.py`.
+
+To run on SQuAD 2.0, you will first need to download the dataset. The necessary
+files can be found here:
+
+*   [train-v2.0.json](https://rajpurkar.github.io/SQuAD-explorer/dataset/train-v2.0.json)
+*   [dev-v2.0.json](https://rajpurkar.github.io/SQuAD-explorer/dataset/dev-v1.1.json)
+*   [evaluate-v2.0.py](https://worksheets.codalab.org/rest/bundles/0x6b567e1cf2e041ec80d7098f031c5c9e/contents/blob/)
+
+Download these to some directory `$SQUAD_DIR`.
+
+On Cloud TPU you can run with BERT-Large as follows:
+
+```shell
+python run_squad.py \
+  --vocab_file=$BERT_LARGE_DIR/vocab.txt \
+  --bert_config_file=$BERT_LARGE_DIR/bert_config.json \
+  --init_checkpoint=$BERT_LARGE_DIR/bert_model.ckpt \
+  --do_train=True \
+  --train_file=$SQUAD_DIR/train-v1.1.json \
+  --do_predict=True \
+  --predict_file=$SQUAD_DIR/dev-v1.1.json \
+  --train_batch_size=24 \
+  --learning_rate=3e-5 \
+  --num_train_epochs=2.0 \
+  --max_seq_length=384 \
+  --doc_stride=128 \
+  --output_dir=gs://some_bucket/squad_large/ \
+  --use_tpu=True \
+  --tpu_name=$TPU_NAME \
+  --version_2_with_negative=True
+```
+
+We assume you have copied everything from the output directory to a local
+directory called ./squad/. The initial dev set predictions will be at
+./squad/predictions.json and the differences between the score of no answer ("")
+and the best non-null answer for each question will be in the file
+./squad/null_odds.json
+
+Run this script to tune a threshold for predicting null versus non-null answers:
+
+python $SQUAD_DIR/evaluate-v2.0.py $SQUAD_DIR/dev-v2.0.json
+./squad/predictions.json --na-prob-file ./squad/null_odds.json
+
+Assume the script outputs "best_f1_thresh" THRESH. (Typical values are between
+-1.0 and -5.0). You can now re-run the model to generate predictions with the
+derived threshold or alternatively you can extract the appropriate answers from
+./squad/nbest_predictions.json.
+
+```shell
+python run_squad.py \
+  --vocab_file=$BERT_LARGE_DIR/vocab.txt \
+  --bert_config_file=$BERT_LARGE_DIR/bert_config.json \
+  --init_checkpoint=$BERT_LARGE_DIR/bert_model.ckpt \
+  --do_train=False \
+  --train_file=$SQUAD_DIR/train-v1.1.json \
+  --do_predict=True \
+  --predict_file=$SQUAD_DIR/dev-v1.1.json \
+  --train_batch_size=24 \
+  --learning_rate=3e-5 \
+  --num_train_epochs=2.0 \
+  --max_seq_length=384 \
+  --doc_stride=128 \
+  --output_dir=gs://some_bucket/squad_large/ \
+  --use_tpu=True \
+  --tpu_name=$TPU_NAME \
+  --version_2_with_negative=True \
+  --null_score_diff_threshold=$THRESH
+```
 
 ### Out-of-memory issues
 

@@ -164,6 +164,7 @@ class BertModelTest(tf.test.TestCase):
     graph = sess.graph
 
     ignore_strings = [
+        "^.*/assert_less_equal/.*$",
         "^.*/dilation_rate$",
         "^.*/Tensordot/concat$",
         "^.*/Tensordot/concat/axis$",
