@@ -24,6 +24,12 @@ import random
 import tokenization
 import tensorflow as tf
 
+try:
+  from tqdm import trange
+except ImportError:
+  def trange(*args, **kw):
+    return range(*args)
+
 flags = tf.flags
 
 FLAGS = flags.FLAGS
@@ -60,6 +66,9 @@ flags.DEFINE_float(
     "short_seq_prob", 0.1,
     "Probability of creating sequences which are shorter than the "
     "maximum length.")
+
+
+masked_lm = collections.namedtuple("masked_lm", ["index", "label"])  # pylint: disable=invalid-name
 
 
 class TrainingInstance(object):
@@ -206,8 +215,8 @@ def create_training_instances(input_files, tokenizer, max_seq_length,
 
   vocab_words = list(tokenizer.vocab.keys())
   instances = []
-  for _ in range(dupe_factor):
-    for document_index in range(len(all_documents)):
+  for _ in trange(dupe_factor, desc="dupe_factor"):
+    for document_index in trange(len(all_documents), desc="documents"):
       instances.extend(
           create_instances_from_document(
               all_documents, document_index, max_seq_length, short_seq_prob,
@@ -345,8 +354,6 @@ def create_masked_lm_predictions(tokens, masked_lm_prob,
   rng.shuffle(cand_indexes)
 
   output_tokens = list(tokens)
-
-  masked_lm = collections.namedtuple("masked_lm", ["index", "label"])  # pylint: disable=invalid-name
 
   num_to_predict = min(max_predictions_per_seq,
                        max(1, int(round(len(tokens) * masked_lm_prob))))
