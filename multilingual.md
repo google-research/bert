@@ -176,8 +176,8 @@ weighted the same way as the data, so low-resource languages are upweighted by
 some factor. We intentionally do *not* use any marker to denote the input
 language (so that zero-shot training can work).
 
-Because Chinese does not have whitespace characters, we add spaces around every
-character in the
+Because Chinese (and Japanese Kanji and Korean Hanja) does not have whitespace
+characters, we add spaces around every character in the
 [CJK Unicode range](https://en.wikipedia.org/wiki/CJK_Unified_Ideographs_\(Unicode_block\))
 before applying WordPiece. This means that Chinese is effectively
 character-tokenized. Note that the CJK Unicode block only includes
