@@ -412,7 +412,8 @@ def convert_examples_to_features(examples, tokenizer, max_seq_length,
         doc_start = doc_span.start
         doc_end = doc_span.start + doc_span.length - 1
         out_of_span = False
-        if not (tok_start_position >= doc_start and tok_end_position <= doc_end):
+        if not (tok_start_position >= doc_start and
+                tok_end_position <= doc_end):
           out_of_span = True
         if out_of_span:
           start_position = 0
