@@ -5,7 +5,7 @@ Mongolian \*\*\*\*\***
 
 We uploaded a new multilingual model which does *not* perform any normalization
 on the input (no lower casing, accent stripping, or Unicode normalization), and
-additionally inclues Thai and Mongolian.
+additionally includes Thai and Mongolian.
 
 **It is recommended to use this version for developing multilingual models,
 especially on languages with non-Latin alphabets.**
