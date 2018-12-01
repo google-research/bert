@@ -139,14 +139,14 @@ class BertModel(object):
 
     Args:
       config: `BertConfig` instance.
-      is_training: bool. rue for training model, false for eval model. Controls
+      is_training: bool. true for training model, false for eval model. Controls
         whether dropout will be applied.
       input_ids: int32 Tensor of shape [batch_size, seq_length].
       input_mask: (optional) int32 Tensor of shape [batch_size, seq_length].
       token_type_ids: (optional) int32 Tensor of shape [batch_size, seq_length].
       use_one_hot_embeddings: (optional) bool. Whether to use one-hot word
         embeddings or tf.embedding_lookup() for the word embeddings. On the TPU,
-        it is must faster if this is True, on the CPU or GPU, it is faster if
+        it is much faster if this is True, on the CPU or GPU, it is faster if
         this is False.
       scope: (optional) variable scope. Defaults to "bert".
 
