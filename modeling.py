@@ -104,7 +104,7 @@ class BertConfig(object):
 
 
 class BertModel(object):
-  """BERT model ("Bidirectional Embedding Representations from a Transformer").
+  """BERT model ("Bidirectional Encoder Representations from Transformers").
 
   Example usage:
 
