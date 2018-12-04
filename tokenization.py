@@ -21,6 +21,7 @@ from __future__ import print_function
 import collections
 import unicodedata
 import six
+import re
 import tensorflow as tf
 
 
@@ -168,6 +169,19 @@ class BasicTokenizer(object):
 
   def _run_strip_accents(self, text):
     """Strips accents from a piece of text."""
+
+    # Skip using _run_strip_accents() for Korean substrings, since normalizing
+    # Korean characters with NFD and joining them back results in a seemingly
+    # same but different text, which causes a bug.
+    to_char = chr if six.PY3 else unichr
+    korean = "%s-%s%s-%s" % (to_char(0xac00), to_char(0xd7a3),
+                             to_char(0x3131), to_char(0x3163))
+    if re.search("[%s]+" % korean, text):
+      return "".join(
+          substr if re.search("^[%s]+$" % korean, substr)
+          else self._run_strip_accents(substr)
+          for substr in re.findall("[%s]+|[^%s]+" % (korean, korean), text))
+
     text = unicodedata.normalize("NFD", text)
     output = []
     for char in text:
