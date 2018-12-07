@@ -169,7 +169,7 @@ class BertModel(object):
     if token_type_ids is None:
       token_type_ids = tf.zeros(shape=[batch_size, seq_length], dtype=tf.int32)
 
-    with tf.variable_scope("bert", scope):
+    with tf.variable_scope(scope, default_name="bert"):
       with tf.variable_scope("embeddings"):
         # Perform embedding lookup on the word ids.
         (self.embedding_output, self.embedding_table) = embedding_lookup(
@@ -315,7 +315,7 @@ def get_activation(activation_string):
     raise ValueError("Unsupported activation: %s" % act)
 
 
-def get_assigment_map_from_checkpoint(tvars, init_checkpoint):
+def get_assignment_map_from_checkpoint(tvars, init_checkpoint):
   """Compute the union of the current variables and checkpoint variables."""
   assignment_map = {}
   initialized_variable_names = {}
@@ -469,11 +469,6 @@ def embedding_postprocessor(input_tensor,
   seq_length = input_shape[1]
   width = input_shape[2]
 
-  if seq_length > max_position_embeddings:
-    raise ValueError("The seq length (%d) cannot be greater than "
-                     "`max_position_embeddings` (%d)" %
-                     (seq_length, max_position_embeddings))
-
   output = input_tensor
 
   if use_token_type:
@@ -494,37 +489,35 @@ def embedding_postprocessor(input_tensor,
     output += token_type_embeddings
 
   if use_position_embeddings:
-    full_position_embeddings = tf.get_variable(
-        name=position_embedding_name,
-        shape=[max_position_embeddings, width],
-        initializer=create_initializer(initializer_range))
-    # Since the position embedding table is a learned variable, we create it
-    # using a (long) sequence length `max_position_embeddings`. The actual
-    # sequence length might be shorter than this, for faster training of
-    # tasks that do not have long sequences.
-    #
-    # So `full_position_embeddings` is effectively an embedding table
-    # for position [0, 1, 2, ..., max_position_embeddings-1], and the current
-    # sequence has positions [0, 1, 2, ... seq_length-1], so we can just
-    # perform a slice.
-    if seq_length < max_position_embeddings:
+    assert_op = tf.assert_less_equal(seq_length, max_position_embeddings)
+    with tf.control_dependencies([assert_op]):
+      full_position_embeddings = tf.get_variable(
+          name=position_embedding_name,
+          shape=[max_position_embeddings, width],
+          initializer=create_initializer(initializer_range))
+      # Since the position embedding table is a learned variable, we create it
+      # using a (long) sequence length `max_position_embeddings`. The actual
+      # sequence length might be shorter than this, for faster training of
+      # tasks that do not have long sequences.
+      #
+      # So `full_position_embeddings` is effectively an embedding table
+      # for position [0, 1, 2, ..., max_position_embeddings-1], and the current
+      # sequence has positions [0, 1, 2, ... seq_length-1], so we can just
+      # perform a slice.
       position_embeddings = tf.slice(full_position_embeddings, [0, 0],
                                      [seq_length, -1])
-    else:
-      position_embeddings = full_position_embeddings
+      num_dims = len(output.shape.as_list())
 
-    num_dims = len(output.shape.as_list())
-
-    # Only the last two dimensions are relevant (`seq_length` and `width`), so
-    # we broadcast among the first dimensions, which is typically just
-    # the batch size.
-    position_broadcast_shape = []
-    for _ in range(num_dims - 2):
-      position_broadcast_shape.append(1)
-    position_broadcast_shape.extend([seq_length, width])
-    position_embeddings = tf.reshape(position_embeddings,
-                                     position_broadcast_shape)
-    output += position_embeddings
+      # Only the last two dimensions are relevant (`seq_length` and `width`), so
+      # we broadcast among the first dimensions, which is typically just
+      # the batch size.
+      position_broadcast_shape = []
+      for _ in range(num_dims - 2):
+        position_broadcast_shape.append(1)
+      position_broadcast_shape.extend([seq_length, width])
+      position_embeddings = tf.reshape(position_embeddings,
+                                       position_broadcast_shape)
+      output += position_embeddings
 
   output = layer_norm_and_dropout(output, dropout_prob)
   return output
@@ -611,7 +604,8 @@ def attention_layer(from_tensor,
     query_act: (optional) Activation function for the query transform.
     key_act: (optional) Activation function for the key transform.
     value_act: (optional) Activation function for the value transform.
-    attention_probs_dropout_prob:
+    attention_probs_dropout_prob: (optional) float. Dropout probability of the
+      attention probabilities.
     initializer_range: float. Range of the weight initializer.
     do_return_2d_tensor: bool. If True, the output will be of shape [batch_size
       * from_seq_length, num_attention_heads * size_per_head]. If False, the
