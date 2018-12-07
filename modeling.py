@@ -25,6 +25,9 @@ import math
 import re
 import six
 import tensorflow as tf
+from tensor2tensor.models.research.universal_transformer_util import *
+from tensor2tensor.models.research.universal_transformer import update_hparams_for_universal_transformer
+from tensor2tensor.models.transformer import transformer_tiny
 
 
 class BertConfig(object):
@@ -134,6 +137,7 @@ class BertModel(object):
                input_mask=None,
                token_type_ids=None,
                use_one_hot_embeddings=True,
+               universal=False,
                scope=None):
     """Constructor for BertModel.
 
@@ -203,18 +207,34 @@ class BertModel(object):
 
         # Run the stacked transformer.
         # `sequence_output` shape = [batch_size, seq_length, hidden_size].
-        self.all_encoder_layers = transformer_model(
-            input_tensor=self.embedding_output,
-            attention_mask=attention_mask,
-            hidden_size=config.hidden_size,
-            num_hidden_layers=config.num_hidden_layers,
-            num_attention_heads=config.num_attention_heads,
-            intermediate_size=config.intermediate_size,
-            intermediate_act_fn=get_activation(config.hidden_act),
-            hidden_dropout_prob=config.hidden_dropout_prob,
-            attention_probs_dropout_prob=config.attention_probs_dropout_prob,
-            initializer_range=config.initializer_range,
-            do_return_all_layers=True)
+        if universal:
+          self.all_encoder_layers, (ponder_times, remainders) = universal_transformer_model(
+              input_tensor=self.embedding_output,
+              attention_mask=attention_mask,
+              hidden_size=config.hidden_size,
+              num_hidden_layers=config.num_hidden_layers,
+              num_attention_heads=config.num_attention_heads,
+              intermediate_size=config.intermediate_size,
+              intermediate_act_fn=get_activation(config.hidden_act),
+              hidden_dropout_prob=config.hidden_dropout_prob,
+              attention_probs_dropout_prob=config.attention_probs_dropout_prob,
+              initializer_range=config.initializer_range,
+              do_return_all_layers=True)
+          self.ponder_times = ponder_times
+          self.remainders = remainders
+        else:
+          self.all_encoder_layers = transformer_model(
+              input_tensor=self.embedding_output,
+              attention_mask=attention_mask,
+              hidden_size=config.hidden_size,
+              num_hidden_layers=config.num_hidden_layers,
+              num_attention_heads=config.num_attention_heads,
+              intermediate_size=config.intermediate_size,
+              intermediate_act_fn=get_activation(config.hidden_act),
+              hidden_dropout_prob=config.hidden_dropout_prob,
+              attention_probs_dropout_prob=config.attention_probs_dropout_prob,
+              initializer_range=config.initializer_range,
+              do_return_all_layers=True)
 
       self.sequence_output = self.all_encoder_layers[-1]
       # The "pooler" converts the encoded sequence tensor of shape
@@ -892,6 +912,269 @@ def transformer_model(input_tensor,
   else:
     final_output = reshape_from_matrix(prev_output, input_shape)
     return final_output
+
+
+def ffn_unit_builder(intermediate_size,intermediate_act_fn,initializer_range,hidden_size,hidden_dropout_prob,input_shape,hparams):
+
+  def ffn_unit(attention_output):
+    # The activation is only applied to the "intermediate" hidden layer.
+    with tf.variable_scope("intermediate"):
+      intermediate_output = tf.layers.dense(
+        attention_output,
+        intermediate_size,
+        activation=intermediate_act_fn,
+        kernel_initializer=create_initializer(initializer_range))
+
+    # Down-project back to `hidden_size` then add the residual.
+    with tf.variable_scope("output"):
+      layer_output = tf.layers.dense(
+        intermediate_output,
+        hidden_size,
+        kernel_initializer=create_initializer(initializer_range))
+      layer_output = dropout(layer_output, hidden_dropout_prob)
+      layer_output = layer_norm(layer_output + attention_output)
+      layer_output = reshape_from_matrix(layer_output, input_shape)
+    return layer_output
+
+  return ffn_unit
+
+def attention_unit_builder(attention_mask,num_attention_heads,attention_head_size,attention_probs_dropout_prob,initializer_range,batch_size,seq_length,hidden_size,hidden_dropout_prob):
+
+  def attention_unit(layer_input):
+    layer_input = reshape_to_matrix(layer_input)
+    with tf.variable_scope("attention"):
+      attention_heads = []
+      with tf.variable_scope("self"):
+        attention_head = attention_layer(
+          from_tensor=layer_input,
+          to_tensor=layer_input,
+          attention_mask=attention_mask,
+          num_attention_heads=num_attention_heads,
+          size_per_head=attention_head_size,
+          attention_probs_dropout_prob=attention_probs_dropout_prob,
+          initializer_range=initializer_range,
+          do_return_2d_tensor=True,
+          batch_size=batch_size,
+          from_seq_length=seq_length,
+          to_seq_length=seq_length)
+        attention_heads.append(attention_head)
+
+      attention_output = None
+      if len(attention_heads) == 1:
+        attention_output = attention_heads[0]
+      else:
+        # In the case where we have other sequences, we just concatenate
+        # them to the self-attention head before the projection.
+        attention_output = tf.concat(attention_heads, axis=-1)
+
+      # Run a linear projection of `hidden_size` then add a residual
+      # with `layer_input`.
+      with tf.variable_scope("output"):
+        attention_output = tf.layers.dense(
+          attention_output,
+          hidden_size,
+          kernel_initializer=create_initializer(initializer_range))
+        attention_output = dropout(attention_output, hidden_dropout_prob)
+        attention_output = layer_norm(attention_output + layer_input)
+    return attention_output
+
+  return attention_unit
+
+
+def universal_transformer_act_for_bert(x, hparams, ffn_unit, attention_unit):
+  """Basic universal_transformer with ACT based on remainder-distribution ACT.
+
+  Args:
+    x: input
+    hparams: model hyper-parameters
+    ffn_unit: feed-forward unit
+    attention_unit: multi-head attention unit
+
+  Returns:
+    the output tensor,  (ponder_times, remainders)
+
+  """
+
+  state = x
+  act_max_steps = hparams.act_max_steps
+  threshold = 1.0 - hparams.act_epsilon
+
+  batch_size = tf.shape(state)[0]
+  length = tf.shape(state)[1]
+
+  # Halting probabilities (p_t^n in the paper)
+  halting_probability = tf.zeros(
+      (
+          batch_size,
+          length,
+      ), name="halting_probability")
+  # Remainders (R(t) in the paper)
+  remainders = tf.zeros(
+      (
+          batch_size,
+          length,
+      ), name="remainder")
+  # Number of updates performed (N(t) in the paper)
+  n_updates = tf.zeros(
+      (
+          batch_size,
+          length,
+      ), name="n_updates")
+
+  # Previous cell states (s_t in the paper)
+  previous_state = tf.zeros_like(state, name="previous_state")
+  step = tf.constant(0, dtype=tf.int32)
+
+  def ut_function(state, step, halting_probability, remainders, n_updates,
+                  previous_state):
+    """implements act (position-wise halting).
+
+    Args:
+      state: 3-D Tensor: [batch_size, length, channel]
+      step: indicates number of steps taken so far
+      halting_probability: halting probability
+      remainders: act remainders
+      n_updates: act n_updates
+      previous_state: previous state
+
+    Returns:
+      transformed_state: transformed state
+      step: step+1
+      halting_probability: halting probability
+      remainders: act remainders
+      n_updates: act n_updates
+      new_state: new state
+    """
+    state_shape = state.get_shape()
+    state = step_preprocess(state, step, hparams)
+
+    with tf.variable_scope("sigmoid_activation_for_pondering"):
+      p = common_layers.dense(
+          state,
+          1,
+          activation=tf.nn.sigmoid,
+          use_bias=True,
+          bias_initializer=tf.constant_initializer(
+              hparams.act_halting_bias_init))
+      p = tf.squeeze(p)
+
+    # Mask for inputs which have not halted yet
+    still_running = tf.cast(tf.less(halting_probability, 1.0), tf.float32)
+
+    # Mask of inputs which halted at this step
+    new_halted = tf.cast(
+        tf.greater(halting_probability + p * still_running, threshold),
+        tf.float32) * still_running
+
+    # Mask of inputs which haven't halted, and didn't halt this step
+    still_running = tf.cast(
+        tf.less_equal(halting_probability + p * still_running, threshold),
+        tf.float32) * still_running
+
+    # Add the halting probability for this step to the halting
+    # probabilities for those input which haven't halted yet
+    halting_probability += p * still_running
+
+    # Compute remainders for the inputs which halted at this step
+    remainders += new_halted * (1 - halting_probability)
+
+    # Add the remainders to those inputs which halted at this step
+    halting_probability += new_halted * remainders
+
+    # Increment n_updates for all inputs which are still running
+    n_updates += still_running + new_halted
+
+    # Compute the weight to be applied to the new state and output
+    # 0 when the input has already halted
+    # p when the input hasn't halted yet
+    # the remainders when it halted this step
+    update_weights = tf.expand_dims(p * still_running + new_halted * remainders,
+                                    -1)
+
+    # apply transformation on the state
+    transformed_state = ffn_unit(attention_unit(state))
+
+    # update running part in the weighted state and keep the rest
+    new_state = ((transformed_state * update_weights) +
+                 (previous_state * (1 - update_weights)))
+
+    # remind TensorFlow of everything's shape
+    transformed_state.set_shape(state_shape)
+    for x in [halting_probability, remainders, n_updates]:
+      x.set_shape([
+          state_shape[0],
+          state_shape[1],
+      ])
+      new_state.set_shape(state_shape)
+    step += 1
+    return (transformed_state, step, halting_probability, remainders, n_updates,
+            new_state)
+
+  # While loop stops when this predicate is FALSE.
+  # Ie all (probability < 1-eps AND counter < N) are false.
+  def should_continue(u0, u1, halting_probability, u2, n_updates, u3):
+    del u0, u1, u2, u3
+    return tf.reduce_any(
+        tf.logical_and(
+            tf.less(halting_probability, threshold),
+            tf.less(n_updates, act_max_steps)))
+
+  # Do while loop iterations until predicate above is false.
+  (_, _, _, remainder, n_updates, new_state) = tf.while_loop(
+      should_continue, ut_function,
+      (state, step, halting_probability, remainders, n_updates, previous_state))
+
+  ponder_times = n_updates
+  remainders = remainder
+
+  tf.contrib.summary.scalar("ponder_times", tf.reduce_mean(ponder_times))
+
+  return new_state, (ponder_times, remainders)
+
+def universal_transformer_model(input_tensor,
+                      attention_mask=None,
+                      hidden_size=768,
+                      num_hidden_layers=12,
+                      num_attention_heads=12,
+                      intermediate_size=3072,
+                      intermediate_act_fn=gelu,
+                      hidden_dropout_prob=0.1,
+                      attention_probs_dropout_prob=0.1,
+                      initializer_range=0.02,
+                      do_return_all_layers=False):
+  """
+  here (hopefully) be dragons
+  """
+
+  input_shape = get_shape_list(input_tensor, expected_rank=3)
+  batch_size = input_shape[0]
+  seq_length = input_shape[1]
+  input_width = input_shape[2]
+
+  hparams = transformer_tiny()
+  update_hparams_for_universal_transformer(hparams)
+  hparams.hidden_size = hidden_size
+  hparams.num_heads = num_attention_heads
+  hparams.filter_size = 4*hidden_size
+  hparams.add_position_timing_signal = False #was probably already done somewhere here
+  hparams.add_step_timing_signal = True
+  hparams.recurrence_type = "act"
+  hparams.act_max_steps = num_hidden_layers
+  hparams.num_hidden_layers = num_hidden_layers
+
+  ffn_unit = ffn_unit_builder(intermediate_size, intermediate_act_fn, initializer_range, hidden_size,
+                              hidden_dropout_prob,input_shape,hparams)
+  attention_head_size = int(hidden_size / num_attention_heads)
+  attention_unit = attention_unit_builder(attention_mask,num_attention_heads,attention_head_size,attention_probs_dropout_prob,initializer_range,batch_size,seq_length,hidden_size,hidden_dropout_prob)
+  new_state, (ponder_times, remainders) = universal_transformer_act_for_bert(input_tensor, hparams, ffn_unit, attention_unit)
+
+  if do_return_all_layers:
+    final_outputs = []
+    final_outputs.append(new_state)
+    return final_outputs, (ponder_times, remainders)
+  else:
+    return new_state, (ponder_times, remainders)
+
 
 
 def get_shape_list(tensor, expected_rank=None, name=None):

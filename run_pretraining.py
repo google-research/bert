@@ -105,6 +105,8 @@ flags.DEFINE_integer(
     "num_tpu_cores", 8,
     "Only used if `use_tpu` is True. Total number of TPU cores to use.")
 
+flags.DEFINE_bool("universal", False, "use universal transformer")
+
 
 def model_fn_builder(bert_config, init_checkpoint, learning_rate,
                      num_train_steps, num_warmup_steps, use_tpu,
@@ -134,6 +136,7 @@ def model_fn_builder(bert_config, init_checkpoint, learning_rate,
         input_ids=input_ids,
         input_mask=input_mask,
         token_type_ids=segment_ids,
+        universal=FLAGS.universal,
         use_one_hot_embeddings=use_one_hot_embeddings)
 
     (masked_lm_loss,
@@ -145,7 +148,10 @@ def model_fn_builder(bert_config, init_checkpoint, learning_rate,
      next_sentence_log_probs) = get_next_sentence_output(
          bert_config, model.get_pooled_output(), next_sentence_labels)
 
-    total_loss = masked_lm_loss + next_sentence_loss
+    if FLAGS.universal:
+      total_loss = masked_lm_loss + next_sentence_loss + (0.01*tf.reduce_mean(model.ponder_times + model.remainders)) #default hparams.act_loss_weight = 0.01
+    else:
+      total_loss = masked_lm_loss + next_sentence_loss
 
     tvars = tf.trainable_variables()
 

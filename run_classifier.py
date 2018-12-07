@@ -123,6 +123,9 @@ flags.DEFINE_integer(
     "num_tpu_cores", 8,
     "Only used if `use_tpu` is True. Total number of TPU cores to use.")
 
+flags.DEFINE_bool("universal", False, "use universal transformer")
+
+
 
 class InputExample(object):
   """A single training/test example for simple sequence classification."""
@@ -547,7 +550,8 @@ def create_model(bert_config, is_training, input_ids, input_mask, segment_ids,
       input_ids=input_ids,
       input_mask=input_mask,
       token_type_ids=segment_ids,
-      use_one_hot_embeddings=use_one_hot_embeddings)
+      use_one_hot_embeddings=use_one_hot_embeddings,
+      universal=False)
 
   # In the demo, we are doing a simple classification task on the entire
   # segment.

@@ -77,6 +77,8 @@ flags.DEFINE_bool(
     "tf.nn.embedding_lookup will be used. On TPUs, this should be True "
     "since it is much faster.")
 
+flags.DEFINE_bool("universal", False, "use universal transformer")
+
 
 class InputExample(object):
 
@@ -163,7 +165,8 @@ def model_fn_builder(bert_config, init_checkpoint, layer_indexes, use_tpu,
         input_ids=input_ids,
         input_mask=input_mask,
         token_type_ids=input_type_ids,
-        use_one_hot_embeddings=use_one_hot_embeddings)
+        use_one_hot_embeddings=use_one_hot_embeddings,
+        universal=FLAGS.universal)
 
     if mode != tf.estimator.ModeKeys.PREDICT:
       raise ValueError("Only PREDICT modes are supported: %s" % (mode))
@@ -344,6 +347,9 @@ def main(_):
   tf.logging.set_verbosity(tf.logging.INFO)
 
   layer_indexes = [int(x) for x in FLAGS.layers.split(",")]
+
+  if layer_indexes != [-1] and FLAGS.universal==True:
+    raise ValueError("must set --layers=-1 when using Universal Transformer as it only has 1 layer")
 
   bert_config = modeling.BertConfig.from_json_file(FLAGS.bert_config_file)
 
