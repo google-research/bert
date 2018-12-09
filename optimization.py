@@ -75,9 +75,6 @@ def create_optimizer(loss, init_lr, num_train_steps, num_warmup_steps, use_tpu):
 
   train_op = optimizer.apply_gradients(
       zip(grads, tvars), global_step=global_step)
-
-  new_global_step = global_step + 1
-  train_op = tf.group(train_op, [global_step.assign(new_global_step)])
   return train_op
 
 
@@ -151,7 +148,13 @@ class AdamWeightDecayOptimizer(tf.train.Optimizer):
           [param.assign(next_param),
            m.assign(next_m),
            v.assign(next_v)])
-    return tf.group(*assignments, name=name)
+    train_op = tf.group(*assignments, name=name)
+
+    if global_step is not None:
+      new_global_step = global_step + 1
+      train_op = tf.group(train_op, [global_step.assign(new_global_step)])
+
+    return train_op
 
   def _do_use_weight_decay(self, param_name):
     """Whether to use L2 weight decay for `param_name`."""
