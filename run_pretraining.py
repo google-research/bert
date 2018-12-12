@@ -1,5 +1,6 @@
 # coding=utf-8
 # Copyright 2018 The Google AI Language Team Authors.
+# Copyright (c) 2018, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,8 +20,6 @@ from __future__ import division
 from __future__ import print_function
 
 import os
-import modeling
-import optimization
 import tensorflow as tf
 
 flags = tf.flags
@@ -79,6 +78,10 @@ flags.DEFINE_integer("iterations_per_loop", 1000,
 
 flags.DEFINE_integer("max_eval_steps", 100, "Maximum number of eval steps.")
 
+flags.DEFINE_bool("use_fp16", False, "Whether to use fp32 or fp16 arithmetic on GPU.")
+
+flags.DEFINE_bool("use_xla", False, "Whether to use xla jit compiler on GPU.")
+
 flags.DEFINE_bool("use_tpu", False, "Whether to use TPU or GPU/CPU.")
 
 tf.flags.DEFINE_string(
@@ -105,6 +108,15 @@ flags.DEFINE_integer(
     "num_tpu_cores", 8,
     "Only used if `use_tpu` is True. Total number of TPU cores to use.")
 
+if FLAGS.use_tpu:
+  FLAGS.use_fp16 = false
+  FLAGS.use_xla = false
+
+from gpu_environment import custom_getter
+
+# import these after flags have been defined
+import modeling
+import optimization
 
 def model_fn_builder(bert_config, init_checkpoint, learning_rate,
                      num_train_steps, num_warmup_steps, use_tpu,
@@ -174,7 +186,9 @@ def model_fn_builder(bert_config, init_checkpoint, learning_rate,
 
     output_spec = None
     if mode == tf.estimator.ModeKeys.TRAIN:
+      loss_scale = 128.0
       train_op = optimization.create_optimizer(
+          loss_scale,
           total_loss, learning_rate, num_train_steps, num_warmup_steps, use_tpu)
 
       output_spec = tf.contrib.tpu.TPUEstimatorSpec(
@@ -242,7 +256,7 @@ def get_masked_lm_output(bert_config, input_tensor, output_weights, positions,
   """Get loss and log probs for the masked LM."""
   input_tensor = gather_indexes(input_tensor, positions)
 
-  with tf.variable_scope("cls/predictions"):
+  with tf.variable_scope("cls/predictions", custom_getter=custom_getter):
     # We apply one more non-linear transformation before the output layer.
     # This matrix is not used after pre-training.
     with tf.variable_scope("transform"):
@@ -260,7 +274,7 @@ def get_masked_lm_output(bert_config, input_tensor, output_weights, positions,
         "output_bias",
         shape=[bert_config.vocab_size],
         initializer=tf.zeros_initializer())
-    logits = tf.matmul(input_tensor, output_weights, transpose_b=True)
+    logits = tf.matmul(tf.cast(input_tensor,tf.float32), output_weights, transpose_b=True)
     logits = tf.nn.bias_add(logits, output_bias)
     log_probs = tf.nn.log_softmax(logits, axis=-1)
 
@@ -287,7 +301,7 @@ def get_next_sentence_output(bert_config, input_tensor, labels):
 
   # Simple binary classification. Note that 0 is "next sentence" and 1 is
   # "random sentence". This weight matrix is not used after pre-training.
-  with tf.variable_scope("cls/seq_relationship"):
+  with tf.variable_scope("cls/seq_relationship", custom_getter=custom_getter):
     output_weights = tf.get_variable(
         "output_weights",
         shape=[2, bert_config.hidden_size],
@@ -295,7 +309,7 @@ def get_next_sentence_output(bert_config, input_tensor, labels):
     output_bias = tf.get_variable(
         "output_bias", shape=[2], initializer=tf.zeros_initializer())
 
-    logits = tf.matmul(input_tensor, output_weights, transpose_b=True)
+    logits = tf.matmul(tf.cast(input_tensor,tf.float32), output_weights, transpose_b=True)
     logits = tf.nn.bias_add(logits, output_bias)
     log_probs = tf.nn.log_softmax(logits, axis=-1)
     labels = tf.reshape(labels, [-1])
@@ -490,4 +504,12 @@ if __name__ == "__main__":
   flags.mark_flag_as_required("input_file")
   flags.mark_flag_as_required("bert_config_file")
   flags.mark_flag_as_required("output_dir")
+  if not FLAGS.use_tpu and tf.test.is_gpu_available():
+    if not FLAGS.use_fp16: 
+      print('Warning: Consider option --use_fp16 for better performance on GPU')
+    if not FLAGS.use_xla:
+      print('Warning: Consider option --use_xla for better performance on GPU')
+  else:
+    assert not FLAGS.use_fp16, "--use_fp16 is only supported on GPU."
+    assert not FLAGS.use_xla, "--use_xla is only supported on GPU."
   tf.app.run()

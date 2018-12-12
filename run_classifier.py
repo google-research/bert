@@ -21,8 +21,6 @@ from __future__ import print_function
 import collections
 import csv
 import os
-import modeling
-import optimization
 import tokenization
 import tensorflow as tf
 
@@ -123,6 +121,18 @@ flags.DEFINE_integer(
     "num_tpu_cores", 8,
     "Only used if `use_tpu` is True. Total number of TPU cores to use.")
 
+flags.DEFINE_bool("use_fp16", False, "Whether to use fp32 or fp16 arithmetic on GPU.")
+
+flags.DEFINE_bool("use_xla", False, "Whether to use xla jit compiler on GPU.")
+
+if FLAGS.use_tpu:
+  FLAGS.use_fp16 = false
+  FLAGS.use_xla = false
+
+from gpu_environment import custom_getter, compute_type
+
+import modeling
+import optimization
 
 class InputExample(object):
   """A single training/test example for simple sequence classification."""
@@ -598,12 +608,13 @@ def create_model(bert_config, is_training, input_ids, input_mask, segment_ids,
   output_bias = tf.get_variable(
       "output_bias", [num_labels], initializer=tf.zeros_initializer())
 
-  with tf.variable_scope("loss"):
+  with tf.variable_scope("loss", custom_getter=custom_getter):
     if is_training:
       # I.e., 0.1 dropout
       output_layer = tf.nn.dropout(output_layer, keep_prob=0.9)
 
-    logits = tf.matmul(output_layer, output_weights, transpose_b=True)
+    logits = tf.matmul(output_layer, tf.cast(output_weights, compute_type), transpose_b=True)
+    logits = tf.cast(logits, tf.float32)
     logits = tf.nn.bias_add(logits, output_bias)
     probabilities = tf.nn.softmax(logits, axis=-1)
     log_probs = tf.nn.log_softmax(logits, axis=-1)
@@ -671,7 +682,9 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
     output_spec = None
     if mode == tf.estimator.ModeKeys.TRAIN:
 
+      loss_scale = 128.0 if FLAGS.use_fp16 else 1.0
       train_op = optimization.create_optimizer(
+          loss_scale,
           total_loss, learning_rate, num_train_steps, num_warmup_steps, use_tpu)
 
       output_spec = tf.contrib.tpu.TPUEstimatorSpec(
@@ -978,4 +991,6 @@ if __name__ == "__main__":
   flags.mark_flag_as_required("vocab_file")
   flags.mark_flag_as_required("bert_config_file")
   flags.mark_flag_as_required("output_dir")
+  assert not FLAGS.use_fp16, "--use_fp16 is not supported yet for classifier."
+  assert not FLAGS.use_xla, "--use_xla is not supported yet for classifier."
   tf.app.run()

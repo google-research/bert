@@ -1,5 +1,6 @@
 # coding=utf-8
 # Copyright 2018 The Google AI Language Team Authors.
+# Copyright (c) 2018, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,6 +28,11 @@ import numpy as np
 import six
 import tensorflow as tf
 
+from gpu_environment import cond_jit_scope,custom_getter,compute_type
+
+FLAGS = tf.flags.FLAGS
+
+import fused_layer_norm
 
 class BertConfig(object):
   """Configuration for `BertModel`."""
@@ -168,7 +174,7 @@ class BertModel(object):
     if token_type_ids is None:
       token_type_ids = tf.zeros(shape=[batch_size, seq_length], dtype=tf.int32)
 
-    with tf.variable_scope(scope, default_name="bert"):
+    with tf.variable_scope(scope, default_name="bert", custom_getter=custom_getter):
       with tf.variable_scope("embeddings"):
         # Perform embedding lookup on the word ids.
         (self.embedding_output, self.embedding_table) = embedding_lookup(
@@ -178,6 +184,9 @@ class BertModel(object):
             initializer_range=config.initializer_range,
             word_embedding_name="word_embeddings",
             use_one_hot_embeddings=use_one_hot_embeddings)
+
+        # conditionally convert inputs to fp16
+        self.embedding_output = tf.cast(self.embedding_output, compute_type)
 
         # Add positional embeddings and token type embeddings, then layer
         # normalize and perform dropout.
@@ -361,8 +370,7 @@ def dropout(input_tensor, dropout_prob):
 
 def layer_norm(input_tensor, name=None):
   """Run layer normalization on the last dimension of the tensor."""
-  return tf.contrib.layers.layer_norm(
-      inputs=input_tensor, begin_norm_axis=-1, begin_params_axis=-1, scope=name)
+  return tf.contrib.layers.layer_norm(inputs=input_tensor, begin_norm_axis=-1, begin_params_axis=-1, scope=name)
 
 
 def layer_norm_and_dropout(input_tensor, dropout_prob, name=None):
@@ -482,6 +490,7 @@ def embedding_postprocessor(input_tensor,
     flat_token_type_ids = tf.reshape(token_type_ids, [-1])
     one_hot_ids = tf.one_hot(flat_token_type_ids, depth=token_type_vocab_size)
     token_type_embeddings = tf.matmul(one_hot_ids, token_type_table)
+    token_type_embeddings = tf.cast(token_type_embeddings, compute_type)
     token_type_embeddings = tf.reshape(token_type_embeddings,
                                        [batch_size, seq_length, width])
     output += token_type_embeddings
@@ -513,6 +522,7 @@ def embedding_postprocessor(input_tensor,
       for _ in range(num_dims - 2):
         position_broadcast_shape.append(1)
       position_broadcast_shape.extend([seq_length, width])
+      position_embeddings = tf.cast(position_embeddings, compute_type)
       position_embeddings = tf.reshape(position_embeddings,
                                        position_broadcast_shape)
       output += position_embeddings
@@ -539,7 +549,7 @@ def create_attention_mask_from_input_mask(from_tensor, to_mask):
   to_seq_length = to_shape[1]
 
   to_mask = tf.cast(
-      tf.reshape(to_mask, [batch_size, 1, to_seq_length]), tf.float32)
+      tf.reshape(to_mask, [batch_size, 1, to_seq_length]), compute_type)
 
   # We don't assume that `from_tensor` is a mask (although it could be). We
   # don't actually care if we attend *from* padding tokens (only *to* padding)
@@ -547,7 +557,7 @@ def create_attention_mask_from_input_mask(from_tensor, to_mask):
   #
   # `broadcast_ones` = [batch_size, from_seq_length, 1]
   broadcast_ones = tf.ones(
-      shape=[batch_size, from_seq_length, 1], dtype=tf.float32)
+      shape=[batch_size, from_seq_length, 1], dtype=compute_type)
 
   # Here we broadcast along two dimensions to create the mask.
   mask = broadcast_ones * to_mask
@@ -700,28 +710,30 @@ def attention_layer(from_tensor,
   # `attention_scores` = [B, N, F, T]
   attention_scores = tf.matmul(query_layer, key_layer, transpose_b=True)
   attention_scores = tf.multiply(attention_scores,
-                                 1.0 / math.sqrt(float(size_per_head)))
+                                   1.0 / math.sqrt(float(size_per_head)))
 
   if attention_mask is not None:
     # `attention_mask` = [B, 1, F, T]
     attention_mask = tf.expand_dims(attention_mask, axis=[1])
 
-    # Since attention_mask is 1.0 for positions we want to attend and 0.0 for
-    # masked positions, this operation will create a tensor which is 0.0 for
-    # positions we want to attend and -10000.0 for masked positions.
-    adder = (1.0 - tf.cast(attention_mask, tf.float32)) * -10000.0
+    with cond_jit_scope():
+      # Since attention_mask is 1.0 for positions we want to attend and 0.0 for
+      # masked positions, this operation will create a tensor which is 0.0 for
+      # positions we want to attend and -10000.0 for masked positions.
+      adder = (1.0 - attention_mask) * -10000.0
 
-    # Since we are adding it to the raw scores before the softmax, this is
-    # effectively the same as removing these entirely.
-    attention_scores += adder
+      # Since we are adding it to the raw scores before the softmax, this is
+      # effectively the same as removing these entirely.
+      attention_scores += adder
 
-  # Normalize the attention scores to probabilities.
-  # `attention_probs` = [B, N, F, T]
-  attention_probs = tf.nn.softmax(attention_scores)
+      # Normalize the attention scores to probabilities.
+      # `attention_probs` = [B, N, F, T]
+      attention_probs = tf.nn.softmax(attention_scores)
 
-  # This is actually dropping out entire tokens to attend to, which might
-  # seem a bit unusual, but is taken from the original Transformer paper.
-  attention_probs = dropout(attention_probs, attention_probs_dropout_prob)
+  with cond_jit_scope():
+    # This is actually dropping out entire tokens to attend to, which might
+    # seem a bit unusual, but is taken from the original Transformer paper.
+    attention_probs = dropout(attention_probs, attention_probs_dropout_prob)
 
   # `value_layer` = [B, T, N, H]
   value_layer = tf.reshape(

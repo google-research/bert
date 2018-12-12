@@ -23,8 +23,6 @@ import json
 import math
 import os
 import random
-import modeling
-import optimization
 import tokenization
 import six
 import tensorflow as tf
@@ -153,6 +151,18 @@ flags.DEFINE_float(
     "null_score_diff_threshold", 0.0,
     "If null_score - best_non_null is greater than the threshold predict null.")
 
+flags.DEFINE_bool("use_fp16", False, "Whether to use fp32 or fp16 arithmetic on GPU.")
+
+flags.DEFINE_bool("use_xla", False, "Whether to use xla jit compiler on GPU.")
+
+if FLAGS.use_tpu:
+  FLAGS.use_fp16 = false
+  FLAGS.use_xla = false
+
+from gpu_environment import custom_getter, compute_type
+
+import modeling
+import optimization
 
 class SquadExample(object):
   """A single training/test example for simple sequence classification.
@@ -659,7 +669,9 @@ def model_fn_builder(bert_config, init_checkpoint, learning_rate,
 
       total_loss = (start_loss + end_loss) / 2.0
 
+      loss_scale = 128.0 if FLAGS.use_fp16 else 1.0
       train_op = optimization.create_optimizer(
+          loss_scale,
           total_loss, learning_rate, num_train_steps, num_warmup_steps, use_tpu)
 
       output_spec = tf.contrib.tpu.TPUEstimatorSpec(
@@ -1280,4 +1292,6 @@ if __name__ == "__main__":
   flags.mark_flag_as_required("vocab_file")
   flags.mark_flag_as_required("bert_config_file")
   flags.mark_flag_as_required("output_dir")
+  assert not FLAGS.use_fp16, "--use_fp16 is not supported yet for classifier."
+  assert not FLAGS.use_xla, "--use_xla is not supported yet for classifier."
   tf.app.run()
