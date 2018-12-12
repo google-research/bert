@@ -186,7 +186,7 @@ def model_fn_builder(bert_config, init_checkpoint, learning_rate,
 
     output_spec = None
     if mode == tf.estimator.ModeKeys.TRAIN:
-      loss_scale = 128.0
+      loss_scale = 128.0 if FLAGS.use_fp16 else 1.0
       train_op = optimization.create_optimizer(
           loss_scale,
           total_loss, learning_rate, num_train_steps, num_warmup_steps, use_tpu)
