@@ -19,16 +19,5 @@ import tensorflow as tf
 
 FLAGS = tf.flags.FLAGS
 
-class empty_scope():
-     def __init__(self):
-         pass
-     def __enter__(self):
-         pass
-     def __exit__(self, type, value, traceback):
-         pass
-
-def cond_jit_scope():
-    return tf.contrib.compiler.jit.experimental_jit_scope() if FLAGS.use_xla else empty_scope()
-
 custom_getter = fp16_utils.float32_variable_storage_getter if FLAGS.use_fp16 else None
 compute_type = tf.float16 if FLAGS.use_fp16 else tf.float32

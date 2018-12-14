@@ -28,7 +28,7 @@ import numpy as np
 import six
 import tensorflow as tf
 
-from gpu_environment import cond_jit_scope,custom_getter,compute_type
+from gpu_environment import custom_getter,compute_type
 
 FLAGS = tf.flags.FLAGS
 
@@ -716,24 +716,22 @@ def attention_layer(from_tensor,
     # `attention_mask` = [B, 1, F, T]
     attention_mask = tf.expand_dims(attention_mask, axis=[1])
 
-    with cond_jit_scope():
-      # Since attention_mask is 1.0 for positions we want to attend and 0.0 for
-      # masked positions, this operation will create a tensor which is 0.0 for
-      # positions we want to attend and -10000.0 for masked positions.
-      adder = (1.0 - attention_mask) * -10000.0
+    # Since attention_mask is 1.0 for positions we want to attend and 0.0 for
+    # masked positions, this operation will create a tensor which is 0.0 for
+    # positions we want to attend and -10000.0 for masked positions.
+    adder = (1.0 - attention_mask) * -10000.0
 
-      # Since we are adding it to the raw scores before the softmax, this is
-      # effectively the same as removing these entirely.
-      attention_scores += adder
+    # Since we are adding it to the raw scores before the softmax, this is
+    # effectively the same as removing these entirely.
+    attention_scores += adder
 
-      # Normalize the attention scores to probabilities.
-      # `attention_probs` = [B, N, F, T]
-      attention_probs = tf.nn.softmax(attention_scores)
+    # Normalize the attention scores to probabilities.
+    # `attention_probs` = [B, N, F, T]
+    attention_probs = tf.nn.softmax(attention_scores)
 
-  with cond_jit_scope():
-    # This is actually dropping out entire tokens to attend to, which might
-    # seem a bit unusual, but is taken from the original Transformer paper.
-    attention_probs = dropout(attention_probs, attention_probs_dropout_prob)
+  # This is actually dropping out entire tokens to attend to, which might
+  # seem a bit unusual, but is taken from the original Transformer paper.
+  attention_probs = dropout(attention_probs, attention_probs_dropout_prob)
 
   # `value_layer` = [B, T, N, H]
   value_layer = tf.reshape(

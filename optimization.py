@@ -24,8 +24,6 @@ import tensorflow as tf
 
 FLAGS = tf.flags.FLAGS
 
-from gpu_environment import cond_jit_scope
-
 def create_optimizer(loss_scale, loss, init_lr, num_train_steps, num_warmup_steps, use_tpu):
   """Creates an optimizer training op."""
   global_step = tf.train.get_or_create_global_step()
@@ -135,29 +133,28 @@ class AdamWeightDecayOptimizer(tf.train.Optimizer):
           trainable=False,
           initializer=tf.zeros_initializer())
 
-      with cond_jit_scope():
-        # Standard Adam update.
-        next_m = (
-            tf.multiply(self.beta_1, m) + tf.multiply(1.0 - self.beta_1, grad))
-        next_v = (
-            tf.multiply(self.beta_2, v) + tf.multiply(1.0 - self.beta_2,
-                                                    tf.square(grad)))
+      # Standard Adam update.
+      next_m = (
+          tf.multiply(self.beta_1, m) + tf.multiply(1.0 - self.beta_1, grad))
+      next_v = (
+          tf.multiply(self.beta_2, v) + tf.multiply(1.0 - self.beta_2,
+                                                  tf.square(grad)))
 
-        update = next_m / (tf.sqrt(next_v) + self.epsilon)
+      update = next_m / (tf.sqrt(next_v) + self.epsilon)
 
-        # Just adding the square of the weights to the loss function is *not*
-        # the correct way of using L2 regularization/weight decay with Adam,
-        # since that will interact with the m and v parameters in strange ways.
-        #
-        # Instead we want ot decay the weights in a manner that doesn't interact
-        # with the m/v parameters. This is equivalent to adding the square
-        # of the weights to the loss with plain (non-momentum) SGD.
-        if self._do_use_weight_decay(param_name):
-          update += self.weight_decay_rate * param
+      # Just adding the square of the weights to the loss function is *not*
+      # the correct way of using L2 regularization/weight decay with Adam,
+      # since that will interact with the m and v parameters in strange ways.
+      #
+      # Instead we want ot decay the weights in a manner that doesn't interact
+      # with the m/v parameters. This is equivalent to adding the square
+      # of the weights to the loss with plain (non-momentum) SGD.
+      if self._do_use_weight_decay(param_name):
+        update += self.weight_decay_rate * param
 
-        update_with_lr = self.learning_rate * update
+      update_with_lr = self.learning_rate * update
 
-        next_param = param - update_with_lr
+      next_param = param - update_with_lr
 
       assignments.extend(
           [param.assign(next_param),

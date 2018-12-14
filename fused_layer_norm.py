@@ -31,8 +31,6 @@ from tensorflow.python.ops import array_ops
 from tensorflow.python.framework import dtypes
 from tensorflow.python.ops import nn
 
-from gpu_environment import cond_jit_scope
-
 def fused_layer_norm(inputs,
                center=True,
                scale=True,
@@ -118,8 +116,7 @@ def fused_layer_norm(inputs,
           data_format="NCHW")
       outputs = array_ops.reshape(outputs, outputs_shape)
       if center and scale:
-        with cond_jit_scope():
-          outputs = outputs * gamma + beta
+        outputs = outputs * gamma + beta
       elif center:
         outputs = outputs + beta
       elif scale:
