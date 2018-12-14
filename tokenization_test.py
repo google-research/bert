@@ -31,7 +31,11 @@ class TokenizationTest(tf.test.TestCase):
         "##ing", ","
     ]
     with tempfile.NamedTemporaryFile(delete=False) as vocab_writer:
-      vocab_writer.write("".join([x + "\n" for x in vocab_tokens]))
+      import six
+      if six.PY2:
+        vocab_writer.write("".join([x + "\n" for x in vocab_tokens]))
+      else:
+        vocab_writer.write("".join([x + "\n" for x in vocab_tokens]).encode("utf-8"))
 
       vocab_file = vocab_writer.name
 
