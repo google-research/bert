@@ -491,8 +491,8 @@ def _improve_answer_span(doc_tokens, input_start, input_end, tokenizer,
   #
   # However, this is not always possible. Consider the following:
   #
-  #   Question: What country is the top exporter of electornics?
-  #   Context: The Japanese electronics industry is the lagest in the world.
+  #   Question: What country is the top exporter of electronics?
+  #   Context: The Japanese electronics industry is the largest in the world.
   #   Answer: Japan
   #
   # In this case, the annotator chose "Japan" as a character sub-span of
@@ -863,7 +863,7 @@ def write_predictions(all_examples, all_features, all_results, n_best_size,
               start_logit=pred.start_logit,
               end_logit=pred.end_logit))
 
-    # if we didn't inlude the empty option in the n-best, inlcude it
+    # if we didn't include the empty option in the n-best, include it
     if FLAGS.version_2_with_negative:
       if "" not in seen_predictions:
         nbest.append(

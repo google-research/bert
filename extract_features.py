@@ -390,7 +390,7 @@ def main(_):
       unique_id = int(result["unique_id"])
       feature = unique_id_to_feature[unique_id]
       output_json = collections.OrderedDict()
-      output_json["linex_index"] = unique_id
+      output_json["line_index"] = unique_id
       all_features = []
       for (i, token) in enumerate(feature.tokens):
         all_layers = []
