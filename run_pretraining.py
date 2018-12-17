@@ -109,8 +109,8 @@ flags.DEFINE_integer(
     "Only used if `use_tpu` is True. Total number of TPU cores to use.")
 
 if FLAGS.use_tpu:
-  FLAGS.use_fp16 = false
-  FLAGS.use_xla = false
+  FLAGS.use_fp16 = False
+  FLAGS.use_xla = False
 
 from gpu_environment import custom_getter
 
