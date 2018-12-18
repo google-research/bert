@@ -84,10 +84,7 @@ def load_vocab(vocab_file):
 
 def convert_by_vocab(vocab, items):
   """Converts a sequence of [tokens|ids] using the vocab."""
-  output = []
-  for item in items:
-    output.append(vocab[item])
-  return output
+  return [vocab[item] for item in items]
 
 
 def convert_tokens_to_ids(vocab, tokens):
