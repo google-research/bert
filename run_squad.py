@@ -1096,6 +1096,9 @@ class FeatureWriter(object):
 
 def validate_flags_or_throw(bert_config):
   """Validate the input FLAGS or throw an exception."""
+  tokenization.validate_case_matches_checkpoint(FLAGS.do_lower_case,
+                                                FLAGS.init_checkpoint)
+
   if not FLAGS.do_train and not FLAGS.do_predict:
     raise ValueError("At least one of `do_train` or `do_predict` must be True.")
 

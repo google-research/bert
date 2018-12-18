@@ -76,6 +76,9 @@ def create_optimizer(loss, init_lr, num_train_steps, num_warmup_steps, use_tpu):
   train_op = optimizer.apply_gradients(
       zip(grads, tvars), global_step=global_step)
 
+  # Normally the global step update is done inside of `apply_gradients`.
+  # However, `AdamWeightDecayOptimizer` doesn't do this. But if you use
+  # a different optimizer, you should probably take this line out.
   new_global_step = global_step + 1
   train_op = tf.group(train_op, [global_step.assign(new_global_step)])
   return train_op
@@ -137,7 +140,7 @@ class AdamWeightDecayOptimizer(tf.train.Optimizer):
       # the correct way of using L2 regularization/weight decay with Adam,
       # since that will interact with the m and v parameters in strange ways.
       #
-      # Instead we want to decay the weights in a manner that doesn't interact
+      # Instead we want ot decay the weights in a manner that doesn't interact
       # with the m/v parameters. This is equivalent to adding the square
       # of the weights to the loss with plain (non-momentum) SGD.
       if self._do_use_weight_decay(param_name):

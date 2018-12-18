@@ -297,7 +297,7 @@ chosen because they are the top 100 languages with the largest Wikipedias:
 *   Volapük
 *   Waray-Waray
 *   Welsh
-*   West
+*   West Frisian
 *   Western Punjabi
 *   Yoruba
 

@@ -5,7 +5,7 @@ Mongolian \*\*\*\*\***
 
 We uploaded a new multilingual model which does *not* perform any normalization
 on the input (no lower casing, accent stripping, or Unicode normalization), and
-additionally includes Thai and Mongolian.
+additionally inclues Thai and Mongolian.
 
 **It is recommended to use this version for developing multilingual models,
 especially on languages with non-Latin alphabets.**
@@ -38,8 +38,9 @@ repository.
 
 We have made two new BERT models available:
 
-*   **[`BERT-Base, Multilingual`](https://storage.googleapis.com/bert_models/2018_11_03/multilingual_L-12_H-768_A-12.zip)**:
-    102 languages, 12-layer, 768-hidden, 12-heads, 110M parameters
+*   **[`BERT-Base, Multilingual`](https://storage.googleapis.com/bert_models/2018_11_03/multilingual_L-12_H-768_A-12.zip)
+    (Not recommended, use `Multilingual Cased` instead)**: 102 languages,
+    12-layer, 768-hidden, 12-heads, 110M parameters
 *   **[`BERT-Base, Chinese`](https://storage.googleapis.com/bert_models/2018_11_03/chinese_L-12_H-768_A-12.zip)**:
     Chinese Simplified and Traditional, 12-layer, 768-hidden, 12-heads, 110M
     parameters
@@ -228,8 +229,9 @@ The links to the models are here (right-click, 'Save link as...' on the name):
     24-layer, 1024-hidden, 16-heads, 340M parameters
 *   **[`BERT-Base, Multilingual Cased (New, recommended)`](https://storage.googleapis.com/bert_models/2018_11_23/multi_cased_L-12_H-768_A-12.zip)**:
     104 languages, 12-layer, 768-hidden, 12-heads, 110M parameters
-*   **[`BERT-Base, Multilingual Uncased (Orig, not recommended)`](https://storage.googleapis.com/bert_models/2018_11_03/multilingual_L-12_H-768_A-12.zip)**:
-    102 languages, 12-layer, 768-hidden, 12-heads, 110M parameters
+*   **[`BERT-Base, Multilingual Uncased (Orig, not recommended)`](https://storage.googleapis.com/bert_models/2018_11_03/multilingual_L-12_H-768_A-12.zip)
+    (Not recommended, use `Multilingual Cased` instead)**: 102 languages,
+    12-layer, 768-hidden, 12-heads, 110M parameters
 *   **[`BERT-Base, Chinese`](https://storage.googleapis.com/bert_models/2018_11_03/chinese_L-12_H-768_A-12.zip)**:
     Chinese Simplified and Traditional, 12-layer, 768-hidden, 12-heads, 110M
     parameters
