@@ -1,6 +1,5 @@
 # coding=utf-8
 # Copyright 2018 The Google AI Language Team Authors.
-# Copyright (c) 2018, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,9 +21,7 @@ from __future__ import print_function
 import re
 import tensorflow as tf
 
-FLAGS = tf.flags.FLAGS
-
-def create_optimizer(loss_scale, loss, init_lr, num_train_steps, num_warmup_steps, use_tpu):
+def create_optimizer(loss, init_lr, num_train_steps, num_warmup_steps, use_tpu, loss_scale=1.0):
   """Creates an optimizer training op."""
   global_step = tf.train.get_or_create_global_step()
 
@@ -70,7 +67,7 @@ def create_optimizer(loss_scale, loss, init_lr, num_train_steps, num_warmup_step
     optimizer = tf.contrib.tpu.CrossShardOptimizer(optimizer)
 
   tvars = tf.trainable_variables()
-  if FLAGS.use_fp16:
+  if loss_scale != 1.0:
     grads = tf.gradients(loss*loss_scale, tvars)
     grads = [tf.math.scalar_mul(1.0/loss_scale,grad) for grad in grads]
   else:
@@ -138,7 +135,7 @@ class AdamWeightDecayOptimizer(tf.train.Optimizer):
           tf.multiply(self.beta_1, m) + tf.multiply(1.0 - self.beta_1, grad))
       next_v = (
           tf.multiply(self.beta_2, v) + tf.multiply(1.0 - self.beta_2,
-                                                  tf.square(grad)))
+                                                    tf.square(grad)))
 
       update = next_m / (tf.sqrt(next_v) + self.epsilon)
 

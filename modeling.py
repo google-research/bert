@@ -1,6 +1,5 @@
 # coding=utf-8
 # Copyright 2018 The Google AI Language Team Authors.
-# Copyright (c) 2018, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,12 +26,6 @@ import re
 import numpy as np
 import six
 import tensorflow as tf
-
-from gpu_environment import custom_getter,compute_type
-
-FLAGS = tf.flags.FLAGS
-
-import fused_layer_norm
 
 class BertConfig(object):
   """Configuration for `BertModel`."""
@@ -141,7 +134,9 @@ class BertModel(object):
                input_mask=None,
                token_type_ids=None,
                use_one_hot_embeddings=False,
-               scope=None):
+               scope=None,
+               custom_getter=None,
+               compute_type=tf.float32):
     """Constructor for BertModel.
 
     Args:
@@ -154,6 +149,8 @@ class BertModel(object):
       use_one_hot_embeddings: (optional) bool. Whether to use one-hot word
         embeddings or tf.embedding_lookup() for the word embeddings.
       scope: (optional) variable scope. Defaults to "bert".
+      custom_getter: (optional) custom_getter for compute types other than float32.
+      compute_type: (optional) compute type for forward and back propagation.
 
     Raises:
       ValueError: The config is invalid or one of the input tensor shapes
@@ -200,14 +197,15 @@ class BertModel(object):
             position_embedding_name="position_embeddings",
             initializer_range=config.initializer_range,
             max_position_embeddings=config.max_position_embeddings,
-            dropout_prob=config.hidden_dropout_prob)
+            dropout_prob=config.hidden_dropout_prob,
+            compute_type=compute_type)
 
       with tf.variable_scope("encoder"):
         # This converts a 2D mask of shape [batch_size, seq_length] to a 3D
         # mask of shape [batch_size, seq_length, seq_length] which is used
         # for the attention scores.
         attention_mask = create_attention_mask_from_input_mask(
-            input_ids, input_mask)
+            input_ids, input_mask, compute_type)
 
         # Run the stacked transformer.
         # `sequence_output` shape = [batch_size, seq_length, hidden_size].
@@ -442,7 +440,8 @@ def embedding_postprocessor(input_tensor,
                             position_embedding_name="position_embeddings",
                             initializer_range=0.02,
                             max_position_embeddings=512,
-                            dropout_prob=0.1):
+                            dropout_prob=0.1,
+                            compute_type=tf.float32):
   """Performs various post-processing on a word embedding tensor.
 
   Args:
@@ -531,7 +530,7 @@ def embedding_postprocessor(input_tensor,
   return output
 
 
-def create_attention_mask_from_input_mask(from_tensor, to_mask):
+def create_attention_mask_from_input_mask(from_tensor, to_mask, compute_type=tf.float32):
   """Create 3D attention mask from a 2D tensor mask.
 
   Args:
@@ -710,7 +709,7 @@ def attention_layer(from_tensor,
   # `attention_scores` = [B, N, F, T]
   attention_scores = tf.matmul(query_layer, key_layer, transpose_b=True)
   attention_scores = tf.multiply(attention_scores,
-                                   1.0 / math.sqrt(float(size_per_head)))
+                                 1.0 / math.sqrt(float(size_per_head)))
 
   if attention_mask is not None:
     # `attention_mask` = [B, 1, F, T]
@@ -725,9 +724,9 @@ def attention_layer(from_tensor,
     # effectively the same as removing these entirely.
     attention_scores += adder
 
-    # Normalize the attention scores to probabilities.
-    # `attention_probs` = [B, N, F, T]
-    attention_probs = tf.nn.softmax(attention_scores)
+  # Normalize the attention scores to probabilities.
+  # `attention_probs` = [B, N, F, T]
+  attention_probs = tf.nn.softmax(attention_scores)
 
   # This is actually dropping out entire tokens to attend to, which might
   # seem a bit unusual, but is taken from the original Transformer paper.

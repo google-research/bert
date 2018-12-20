@@ -1,6 +1,5 @@
 # coding=utf-8
 # Copyright 2018 The Google AI Language Team Authors.
-# Copyright (c) 2018, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,6 +19,8 @@ from __future__ import division
 from __future__ import print_function
 
 import os
+import modeling
+import optimization
 import tensorflow as tf
 
 flags = tf.flags
@@ -112,11 +113,7 @@ if FLAGS.use_tpu:
   FLAGS.use_fp16 = False
   FLAGS.use_xla = False
 
-from gpu_environment import custom_getter
-
-# import these after flags have been defined
-import modeling
-import optimization
+from gpu_environment import compute_type,custom_getter
 
 def model_fn_builder(bert_config, init_checkpoint, learning_rate,
                      num_train_steps, num_warmup_steps, use_tpu,
@@ -146,7 +143,9 @@ def model_fn_builder(bert_config, init_checkpoint, learning_rate,
         input_ids=input_ids,
         input_mask=input_mask,
         token_type_ids=segment_ids,
-        use_one_hot_embeddings=use_one_hot_embeddings)
+        use_one_hot_embeddings=use_one_hot_embeddings,
+        custom_getter=custom_getter,
+        compute_type=compute_type)
 
     (masked_lm_loss,
      masked_lm_example_loss, masked_lm_log_probs) = get_masked_lm_output(
@@ -189,8 +188,8 @@ def model_fn_builder(bert_config, init_checkpoint, learning_rate,
       # loss scale may need adjustment for new datasets
       loss_scale = 128.0 if FLAGS.use_fp16 else 1.0
       train_op = optimization.create_optimizer(
-          loss_scale,
-          total_loss, learning_rate, num_train_steps, num_warmup_steps, use_tpu)
+          total_loss, learning_rate, num_train_steps, num_warmup_steps, use_tpu,
+          loss_scale)
 
       output_spec = tf.contrib.tpu.TPUEstimatorSpec(
           mode=mode,
@@ -511,11 +510,14 @@ if __name__ == "__main__":
   flags.mark_flag_as_required("input_file")
   flags.mark_flag_as_required("bert_config_file")
   flags.mark_flag_as_required("output_dir")
-  if not FLAGS.use_tpu and tf.test.is_gpu_available():
+  if not FLAGS.use_tpu:
+    # These info messages are printed for CPU and GPU runs,
+    # even though they only apply to GPU runs.
+    # Don't want to call tf.is_gpu_available() here because it messes with horovod
     if not FLAGS.use_fp16: 
-      print('Warning: Consider option --use_fp16 for better performance on GPU')
+      print('Info: Consider option --use_fp16 for better performance on GPU')
     if not FLAGS.use_xla:
-      print('Warning: Consider option --use_xla for better performance on GPU')
+      print('Info: Consider option --use_xla for better performance on GPU')
   else:
     assert not FLAGS.use_fp16, "--use_fp16 is only supported on GPU."
     assert not FLAGS.use_xla, "--use_xla is only supported on GPU."
