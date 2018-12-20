@@ -140,7 +140,7 @@ class AdamWeightDecayOptimizer(tf.train.Optimizer):
       # the correct way of using L2 regularization/weight decay with Adam,
       # since that will interact with the m and v parameters in strange ways.
       #
-      # Instead we want ot decay the weights in a manner that doesn't interact
+      # Instead we want to decay the weights in a manner that doesn't interact
       # with the m/v parameters. This is equivalent to adding the square
       # of the weights to the loss with plain (non-momentum) SGD.
       if self._do_use_weight_decay(param_name):
