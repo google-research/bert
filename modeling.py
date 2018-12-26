@@ -104,7 +104,7 @@ class BertConfig(object):
 
 
 class BertModel(object):
-  """BERT model ("Bidirectional Embedding Representations from a Transformer").
+  """BERT model ("Bidirectional Encoder Representations from Transformers").
 
   Example usage:
 
@@ -139,14 +139,14 @@ class BertModel(object):
 
     Args:
       config: `BertConfig` instance.
-      is_training: bool. rue for training model, false for eval model. Controls
+      is_training: bool. true for training model, false for eval model. Controls
         whether dropout will be applied.
       input_ids: int32 Tensor of shape [batch_size, seq_length].
       input_mask: (optional) int32 Tensor of shape [batch_size, seq_length].
       token_type_ids: (optional) int32 Tensor of shape [batch_size, seq_length].
       use_one_hot_embeddings: (optional) bool. Whether to use one-hot word
         embeddings or tf.embedding_lookup() for the word embeddings. On the TPU,
-        it is must faster if this is True, on the CPU or GPU, it is faster if
+        it is much faster if this is True, on the CPU or GPU, it is faster if
         this is False.
       scope: (optional) variable scope. Defaults to "bert".
 
@@ -740,12 +740,12 @@ def attention_layer(from_tensor,
   context_layer = tf.transpose(context_layer, [0, 2, 1, 3])
 
   if do_return_2d_tensor:
-    # `context_layer` = [B*F, N*V]
+    # `context_layer` = [B*F, N*H]
     context_layer = tf.reshape(
         context_layer,
         [batch_size * from_seq_length, num_attention_heads * size_per_head])
   else:
-    # `context_layer` = [B, F, N*V]
+    # `context_layer` = [B, F, N*H]
     context_layer = tf.reshape(
         context_layer,
         [batch_size, from_seq_length, num_attention_heads * size_per_head])
