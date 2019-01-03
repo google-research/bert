@@ -1,5 +1,61 @@
 # BERT
 
+**\*\*\*\*\* New November 23rd, 2018: Un-normalized multilingual model + Thai +
+Mongolian \*\*\*\*\***
+
+We uploaded a new multilingual model which does *not* perform any normalization
+on the input (no lower casing, accent stripping, or Unicode normalization), and
+additionally inclues Thai and Mongolian.
+
+**It is recommended to use this version for developing multilingual models,
+especially on languages with non-Latin alphabets.**
+
+This does not require any code changes, and can be downloaded here:
+
+*   **[`BERT-Base, Multilingual Cased`](https://storage.googleapis.com/bert_models/2018_11_23/multi_cased_L-12_H-768_A-12.zip)**:
+    104 languages, 12-layer, 768-hidden, 12-heads, 110M parameters
+
+**\*\*\*\*\* New November 15th, 2018: SOTA SQuAD 2.0 System \*\*\*\*\***
+
+We released code changes to reproduce our 83% F1 SQuAD 2.0 system, which is
+currently 1st place on the leaderboard by 3%. See the SQuAD 2.0 section of the
+README for details.
+
+**\*\*\*\*\* New November 5th, 2018: Third-party PyTorch and Chainer versions of
+BERT available \*\*\*\*\***
+
+NLP researchers from HuggingFace made a
+[PyTorch version of BERT available](https://github.com/huggingface/pytorch-pretrained-BERT)
+which is compatible with our pre-trained checkpoints and is able to reproduce
+our results. Sosuke Kobayashi also made a
+[Chainer version of BERT available](https://github.com/soskek/bert-chainer)
+(Thanks!) We were not involved in the creation or maintenance of the PyTorch
+implementation so please direct any questions towards the authors of that
+repository.
+
+**\*\*\*\*\* New November 3rd, 2018: Multilingual and Chinese models available
+\*\*\*\*\***
+
+We have made two new BERT models available:
+
+*   **[`BERT-Base, Multilingual`](https://storage.googleapis.com/bert_models/2018_11_03/multilingual_L-12_H-768_A-12.zip)
+    (Not recommended, use `Multilingual Cased` instead)**: 102 languages,
+    12-layer, 768-hidden, 12-heads, 110M parameters
+*   **[`BERT-Base, Chinese`](https://storage.googleapis.com/bert_models/2018_11_03/chinese_L-12_H-768_A-12.zip)**:
+    Chinese Simplified and Traditional, 12-layer, 768-hidden, 12-heads, 110M
+    parameters
+
+We use character-based tokenization for Chinese, and WordPiece tokenization for
+all other languages. Both models should work out-of-the-box without any code
+changes. We did update the implementation of `BasicTokenizer` in
+`tokenization.py` to support Chinese character tokenization, so please update if
+you forked it. However, we did not change the tokenization API.
+
+For more, see the
+[Multilingual README](https://github.com/google-research/bert/blob/master/multilingual.md).
+
+**\*\*\*\*\* End new information \*\*\*\*\***
+
 ## Introduction
 
 **BERT**, or **B**idirectional **E**ncoder **R**epresentations from
@@ -41,8 +97,8 @@ minutes.
 
 ## What is BERT?
 
-BERT is method of pre-training language representations, meaning that we train a
-general-purpose "language understanding" model on a large text corpus (like
+BERT is a method of pre-training language representations, meaning that we train
+a general-purpose "language understanding" model on a large text corpus (like
 Wikipedia), and then use that model for downstream NLP tasks that we care about
 (like question answering). BERT outperforms previous methods because it is the
 first *unsupervised*, *deeply bidirectional* system for pre-training NLP.
@@ -154,7 +210,14 @@ Part-of-Speech tagging).
 These models are all released under the same license as the source code (Apache
 2.0).
 
-The links to the models are here (right-cick, 'Save link as...' on the name):
+For information about the Multilingual and Chinese model, see the
+[Multilingual README](https://github.com/google-research/bert/blob/master/multilingual.md).
+
+**When using a cased model, make sure to pass `--do_lower=False` to the training
+scripts. (Or pass `do_lower_case=False` directly to `FullTokenizer` if you're
+using your own script.)**
+
+The links to the models are here (right-click, 'Save link as...' on the name):
 
 *   **[`BERT-Base, Uncased`](https://storage.googleapis.com/bert_models/2018_10_18/uncased_L-12_H-768_A-12.zip)**:
     12-layer, 768-hidden, 12-heads, 110M parameters
@@ -162,8 +225,16 @@ The links to the models are here (right-cick, 'Save link as...' on the name):
     24-layer, 1024-hidden, 16-heads, 340M parameters
 *   **[`BERT-Base, Cased`](https://storage.googleapis.com/bert_models/2018_10_18/cased_L-12_H-768_A-12.zip)**:
     12-layer, 768-hidden, 12-heads , 110M parameters
-*   **`BERT-Large, Cased`**: 24-layer, 1024-hidden, 16-heads, 340M parameters
-    (Not available yet. Needs to be re-generated).
+*   **[`BERT-Large, Cased`](https://storage.googleapis.com/bert_models/2018_10_18/cased_L-24_H-1024_A-16.zip)**:
+    24-layer, 1024-hidden, 16-heads, 340M parameters
+*   **[`BERT-Base, Multilingual Cased (New, recommended)`](https://storage.googleapis.com/bert_models/2018_11_23/multi_cased_L-12_H-768_A-12.zip)**:
+    104 languages, 12-layer, 768-hidden, 12-heads, 110M parameters
+*   **[`BERT-Base, Multilingual Uncased (Orig, not recommended)`](https://storage.googleapis.com/bert_models/2018_11_03/multilingual_L-12_H-768_A-12.zip)
+    (Not recommended, use `Multilingual Cased` instead)**: 102 languages,
+    12-layer, 768-hidden, 12-heads, 110M parameters
+*   **[`BERT-Base, Chinese`](https://storage.googleapis.com/bert_models/2018_11_03/chinese_L-12_H-768_A-12.zip)**:
+    Chinese Simplified and Traditional, 12-layer, 768-hidden, 12-heads, 110M
+    parameters
 
 Each .zip file contains three items:
 
@@ -276,7 +347,31 @@ use BERT for any single-sentence or sentence-pair classification task.
 Note: You might see a message `Running train on CPU`. This really just means
 that it's running on something other than a Cloud TPU, which includes a GPU.
 
-### SQuAD
+#### Prediction from classifier
+
+Once you have trained your classifier you can use it in inference mode by using
+the --do_predict=true command. You need to have a file named test.tsv in the
+input folder. Output will be created in file called test_results.tsv in the
+output folder. Each line will contain output for each sample, columns are the
+class probabilities.
+
+```shell
+export BERT_BASE_DIR=/path/to/bert/uncased_L-12_H-768_A-12
+export GLUE_DIR=/path/to/glue
+export TRAINED_CLASSIFIER=/path/to/fine/tuned/classifier
+
+python run_classifier.py \
+  --task_name=MRPC \
+  --do_predict=true \
+  --data_dir=$GLUE_DIR/MRPC \
+  --vocab_file=$BERT_BASE_DIR/vocab.txt \
+  --bert_config_file=$BERT_BASE_DIR/bert_config.json \
+  --init_checkpoint=$TRAINED_CLASSIFIER \
+  --max_seq_length=128 \
+  --output_dir=/tmp/mrpc_output/
+```
+
+### SQuAD 1.1
 
 The Stanford Question Answering Dataset (SQuAD) is a popular question answering
 benchmark dataset. BERT (at the time of the release) obtains state-of-the-art
@@ -369,6 +464,78 @@ If you fine-tune for one epoch on
 be even better, but you will need to convert TriviaQA into the SQuAD json
 format.
 
+### SQuAD 2.0
+
+This model is also implemented and documented in `run_squad.py`.
+
+To run on SQuAD 2.0, you will first need to download the dataset. The necessary
+files can be found here:
+
+*   [train-v2.0.json](https://rajpurkar.github.io/SQuAD-explorer/dataset/train-v2.0.json)
+*   [dev-v2.0.json](https://rajpurkar.github.io/SQuAD-explorer/dataset/dev-v2.0.json)
+*   [evaluate-v2.0.py](https://worksheets.codalab.org/rest/bundles/0x6b567e1cf2e041ec80d7098f031c5c9e/contents/blob/)
+
+Download these to some directory `$SQUAD_DIR`.
+
+On Cloud TPU you can run with BERT-Large as follows:
+
+```shell
+python run_squad.py \
+  --vocab_file=$BERT_LARGE_DIR/vocab.txt \
+  --bert_config_file=$BERT_LARGE_DIR/bert_config.json \
+  --init_checkpoint=$BERT_LARGE_DIR/bert_model.ckpt \
+  --do_train=True \
+  --train_file=$SQUAD_DIR/train-v2.0.json \
+  --do_predict=True \
+  --predict_file=$SQUAD_DIR/dev-v2.0.json \
+  --train_batch_size=24 \
+  --learning_rate=3e-5 \
+  --num_train_epochs=2.0 \
+  --max_seq_length=384 \
+  --doc_stride=128 \
+  --output_dir=gs://some_bucket/squad_large/ \
+  --use_tpu=True \
+  --tpu_name=$TPU_NAME \
+  --version_2_with_negative=True
+```
+
+We assume you have copied everything from the output directory to a local
+directory called ./squad/. The initial dev set predictions will be at
+./squad/predictions.json and the differences between the score of no answer ("")
+and the best non-null answer for each question will be in the file
+./squad/null_odds.json
+
+Run this script to tune a threshold for predicting null versus non-null answers:
+
+python $SQUAD_DIR/evaluate-v2.0.py $SQUAD_DIR/dev-v2.0.json
+./squad/predictions.json --na-prob-file ./squad/null_odds.json
+
+Assume the script outputs "best_f1_thresh" THRESH. (Typical values are between
+-1.0 and -5.0). You can now re-run the model to generate predictions with the
+derived threshold or alternatively you can extract the appropriate answers from
+./squad/nbest_predictions.json.
+
+```shell
+python run_squad.py \
+  --vocab_file=$BERT_LARGE_DIR/vocab.txt \
+  --bert_config_file=$BERT_LARGE_DIR/bert_config.json \
+  --init_checkpoint=$BERT_LARGE_DIR/bert_model.ckpt \
+  --do_train=False \
+  --train_file=$SQUAD_DIR/train-v2.0.json \
+  --do_predict=True \
+  --predict_file=$SQUAD_DIR/dev-v2.0.json \
+  --train_batch_size=24 \
+  --learning_rate=3e-5 \
+  --num_train_epochs=2.0 \
+  --max_seq_length=384 \
+  --doc_stride=128 \
+  --output_dir=gs://some_bucket/squad_large/ \
+  --use_tpu=True \
+  --tpu_name=$TPU_NAME \
+  --version_2_with_negative=True \
+  --null_score_diff_threshold=$THRESH
+```
+
 ### Out-of-memory issues
 
 All experiments in the paper were fine-tuned on a Cloud TPU, which has 64GB of
@@ -446,8 +613,10 @@ As an example, we include the script `extract_features.py` which can be used
 like this:
 
 ```shell
-# Sentence A and Sentence B are separated by the ||| delimiter.
-# For single sentence inputs, don't use the delimiter.
+# Sentence A and Sentence B are separated by the ||| delimiter for sentence
+# pair tasks like question answering and entailment.
+# For single sentence inputs, put one sentence per line and DON'T use the
+# delimiter.
 echo 'Who was Jim Henson ? ||| Jim Henson was a puppeteer' > /tmp/input.txt
 
 python extract_features.py \
@@ -471,6 +640,12 @@ Note that this script will produce very large output files (by default, around
 If you need to maintain alignment between the original and tokenized words (for
 projecting training labels), see the [Tokenization](#tokenization) section
 below.
+
+**Note:** You may see a message like `Could not find trained model in model_dir:
+/tmp/tmpuB5g5c, running initialization to predict.` This message is expected, it
+just means that we are using the `init_from_checkpoint()` API rather than the
+saved model API. If you don't specify a checkpoint or specify an invalid
+checkpoint, this script will complain.
 
 ## Tokenization
 
@@ -657,6 +832,10 @@ accuracy numbers.
 
 ### Pre-training tips and caveats
 
+*   **If using your own vocabulary, make sure to change `vocab_size` in
+    `bert_config.json`. If you use a larger vocabulary without changing this,
+    you will likely get NaNs when training on GPU or TPU due to unchecked
+    out-of-bounds access.**
 *   If your task has a large domain-specific corpus available (e.g., "movie
     reviews" or "scientific papers"), it will likely be beneficial to run
     additional steps of pre-training on your corpus, starting from the BERT
@@ -704,7 +883,7 @@ domain.
 
 [Common Crawl](http://commoncrawl.org/) is another very large collection of
 text, but you will likely have to do substantial pre-processing and cleanup to
-extract a usuable corpus for pre-training BERT.
+extract a usable corpus for pre-training BERT.
 
 ### Learning a new WordPiece vocabulary
 
@@ -748,9 +927,22 @@ information.
 
 #### Is there a PyTorch version available?
 
-There is no official PyTorch implementation. If someone creates a line-for-line
-PyTorch reimplementation so that our pre-trained checkpoints can be directly
-converted, we would be happy to link to that PyTorch version here.
+There is no official PyTorch implementation. However, NLP researchers from
+HuggingFace made a
+[PyTorch version of BERT available](https://github.com/huggingface/pytorch-pretrained-BERT)
+which is compatible with our pre-trained checkpoints and is able to reproduce
+our results. We were not involved in the creation or maintenance of the PyTorch
+implementation so please direct any questions towards the authors of that
+repository.
+
+#### Is there a Chainer version available?
+
+There is no official Chainer implementation. However, Sosuke Kobayashi made a
+[Chainer version of BERT available](https://github.com/soskek/bert-chainer)
+which is compatible with our pre-trained checkpoints and is able to reproduce
+our results. We were not involved in the creation or maintenance of the Chainer
+implementation so please direct any questions towards the authors of that
+repository.
 
 #### Will models in other languages be released?
 

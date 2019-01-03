@@ -18,9 +18,9 @@ from __future__ import print_function
 
 import os
 import tempfile
-
-import tokenization
+import six
 import tensorflow as tf
+import tokenization
 
 
 class TokenizationTest(tf.test.TestCase):
@@ -31,7 +31,11 @@ class TokenizationTest(tf.test.TestCase):
         "##ing", ","
     ]
     with tempfile.NamedTemporaryFile(delete=False) as vocab_writer:
-      vocab_writer.write("".join([x + "\n" for x in vocab_tokens]))
+      if six.PY2:
+        vocab_writer.write("".join([x + "\n" for x in vocab_tokens]))
+      else:
+        vocab_writer.write("".join(
+            [x + "\n" for x in vocab_tokens]).encode("utf-8"))
 
       vocab_file = vocab_writer.name
 
@@ -43,6 +47,13 @@ class TokenizationTest(tf.test.TestCase):
 
     self.assertAllEqual(
         tokenizer.convert_tokens_to_ids(tokens), [7, 4, 5, 10, 8, 9])
+
+  def test_chinese(self):
+    tokenizer = tokenization.BasicTokenizer()
+
+    self.assertAllEqual(
+        tokenizer.tokenize(u"ah\u535A\u63A8zz"),
+        [u"ah", u"\u535A", u"\u63A8", u"zz"])
 
   def test_basic_tokenizer_lower(self):
     tokenizer = tokenization.BasicTokenizer(do_lower_case=True)
