@@ -539,24 +539,28 @@ def file_based_convert_examples_to_features(
     if ex_index % 10000 == 0:
       tf.logging.info("Writing example %d of %d" % (ex_index, len(examples)))
 
-    feature = convert_single_example(ex_index, example, label_list,
-                                     max_seq_length, tokenizer)
-
-    def create_int_feature(values):
-      f = tf.train.Feature(int64_list=tf.train.Int64List(value=list(values)))
-      return f
-
-    features = collections.OrderedDict()
-    features["input_ids"] = create_int_feature(feature.input_ids)
-    features["input_mask"] = create_int_feature(feature.input_mask)
-    features["segment_ids"] = create_int_feature(feature.segment_ids)
-    features["label_ids"] = create_int_feature([feature.label_id])
-    features["is_real_example"] = create_int_feature(
-        [int(feature.is_real_example)])
-
-    tf_example = tf.train.Example(features=tf.train.Features(feature=features))
+    tf_example = from_record_to_tf_example(ex_index, example, label_list, max_seq_length, tokenizer)
     writer.write(tf_example.SerializeToString())
   writer.close()
+
+
+def from_record_to_tf_example(ex_index, example, label_list, max_seq_length, tokenizer):
+  feature = convert_single_example(ex_index, example, label_list,
+                                   max_seq_length, tokenizer)
+
+  def create_int_feature(values):
+    f = tf.train.Feature(int64_list=tf.train.Int64List(value=list(values)))
+    return f
+
+  features = collections.OrderedDict()
+  features["input_ids"] = create_int_feature(feature.input_ids)
+  features["input_mask"] = create_int_feature(feature.input_mask)
+  features["segment_ids"] = create_int_feature(feature.segment_ids)
+  features["label_ids"] = create_int_feature([feature.label_id])
+  features["is_real_example"] = create_int_feature(
+    [int(feature.is_real_example)])
+  tf_example = tf.train.Example(features=tf.train.Features(feature=features))
+  return tf_example
 
 
 def file_based_input_fn_builder(input_file, seq_length, is_training,
