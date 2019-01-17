@@ -21,7 +21,9 @@ from __future__ import print_function
 import re
 import tensorflow as tf
 
-def create_optimizer(loss, init_lr, num_train_steps, num_warmup_steps, use_tpu, loss_scale=1.0):
+
+def create_optimizer(loss, init_lr, num_train_steps, num_warmup_steps, use_tpu,
+    use_fp16=False, do_hvd=False):
   """Creates an optimizer training op."""
   global_step = tf.train.get_or_create_global_step()
 
@@ -67,22 +69,65 @@ def create_optimizer(loss, init_lr, num_train_steps, num_warmup_steps, use_tpu, 
     optimizer = tf.contrib.tpu.CrossShardOptimizer(optimizer)
 
   tvars = tf.trainable_variables()
-  if loss_scale != 1.0:
-    grads = tf.gradients(loss*loss_scale, tvars)
-    grads = [tf.math.scalar_mul(1.0/loss_scale,grad) for grad in grads]
-  else:
+  if not (do_hvd or use_fp16):
     grads = tf.gradients(loss, tvars)
+  else:
+    # scale up loss to prevent vanishing gradients with fp16 tensors.
+    grads = tf.gradients(loss*128.0, tvars)
+    # convert IndexedSlices to tensors before allreduce calls
+    # and scale down gradients
+    tensor_grads = []
+    for grad in grads:
+      if grad is not None:
+        if isinstance(grad, tf.IndexedSlices):
+          grad = tf.convert_to_tensor(grad)
+        tensor_grads.append(grad/128.0)
+      else:
+        tensor_grads.append(None)
+    grads = tensor_grads
+
+    # do allreduce across all ranks if horovod is enabled
+    if do_hvd:
+      import horovod.tensorflow as hvd
+      from horovod.tensorflow.compression import Compression
+      if hvd.size() > 1:
+        averaged_gradients = []
+        with tf.name_scope("Horovod_Allreduce"):
+          for grad in grads:
+            if grad is not None:
+              avg_grad = hvd.allreduce(grad,
+                                       device_dense='',
+                                       device_sparse='',
+                                       compression=Compression.none)
+              averaged_gradients.append(avg_grad)
+            else:
+              averaged_gradients.append(None)
+        grads = averaged_gradients
+
+    # Convert all gradients to fp32 so clip_by_global_norm will work with
+    # fp16 tensors.
+    # clip_by_global_norm requires all gradients to be of same dtype.
+    grads_fp32 = []
+    for grad in grads:
+      if grad is not None:
+        grads_fp32.append(tf.cast(grad, tf.float32))
+      else:
+        grads_fp32.append(None)
+    grads = grads_fp32
 
   # This is how the model was pre-trained.
   (grads, _) = tf.clip_by_global_norm(grads, clip_norm=1.0)
 
   train_op = optimizer.apply_gradients(
-      zip(grads, tvars), global_step=global_step)
+      zip(grads, tvars), global_step=global_step, use_fp16=use_fp16)
 
   # Normally the global step update is done inside of `apply_gradients`.
   # However, `AdamWeightDecayOptimizer` doesn't do this. But if you use
   # a different optimizer, you should probably take this line out.
   new_global_step = global_step + 1
+  # Sole purpose of this is to name this node so we can look it up
+  # in the training hook that reports loss.
+  new_global_step = tf.identity(new_global_step, name='step_update')
   train_op = tf.group(train_op, [global_step.assign(new_global_step)])
   return train_op
 
@@ -101,14 +146,15 @@ class AdamWeightDecayOptimizer(tf.train.Optimizer):
     """Constructs a AdamWeightDecayOptimizer."""
     super(AdamWeightDecayOptimizer, self).__init__(False, name)
 
-    self.learning_rate = learning_rate
+    self.learning_rate = tf.identity(learning_rate, name='learning_rate')
     self.weight_decay_rate = weight_decay_rate
     self.beta_1 = beta_1
     self.beta_2 = beta_2
     self.epsilon = epsilon
     self.exclude_from_weight_decay = exclude_from_weight_decay
 
-  def apply_gradients(self, grads_and_vars, global_step=None, name=None):
+  def apply_gradients(self, grads_and_vars, global_step=None, name=None,
+      use_fp16=False):
     """See base class."""
     assignments = []
     for (grad, param) in grads_and_vars:
@@ -116,6 +162,16 @@ class AdamWeightDecayOptimizer(tf.train.Optimizer):
         continue
 
       param_name = self._get_variable_name(param.name)
+      has_shadow = use_fp16 and param.dtype.base_dtype != tf.float32
+      if has_shadow:
+        # create shadow fp32 weights for fp16 variable
+        param_fp32 = tf.get_variable(
+            name=param_name + "/shadow",
+            dtype=tf.float32,
+            trainable=False,
+            initializer=tf.cast(param.initialized_value(),tf.float32))
+      else:
+        param_fp32 = param
 
       m = tf.get_variable(
           name=param_name + "/adam_m",
@@ -147,14 +203,17 @@ class AdamWeightDecayOptimizer(tf.train.Optimizer):
       # with the m/v parameters. This is equivalent to adding the square
       # of the weights to the loss with plain (non-momentum) SGD.
       if self._do_use_weight_decay(param_name):
-        update += self.weight_decay_rate * param
+        update += self.weight_decay_rate * param_fp32
 
       update_with_lr = self.learning_rate * update
 
-      next_param = param - update_with_lr
+      next_param = param_fp32 - update_with_lr
 
+      if has_shadow:
+        # cast shadow fp32 weights to fp16 and assign to trainable variable
+        param.assign(tf.cast(next_param, param.dtype.base_dtype))
       assignments.extend(
-          [param.assign(next_param),
+          [param_fp32.assign(next_param),
            m.assign(next_m),
            v.assign(next_v)])
     return tf.group(*assignments, name=name)

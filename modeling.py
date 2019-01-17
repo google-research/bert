@@ -27,6 +27,7 @@ import numpy as np
 import six
 import tensorflow as tf
 
+
 class BertConfig(object):
   """Configuration for `BertModel`."""
 
@@ -135,8 +136,7 @@ class BertModel(object):
                token_type_ids=None,
                use_one_hot_embeddings=False,
                scope=None,
-               custom_getter=None,
-               compute_type=tf.float32):
+	       compute_type=tf.float32):
     """Constructor for BertModel.
 
     Args:
@@ -149,8 +149,7 @@ class BertModel(object):
       use_one_hot_embeddings: (optional) bool. Whether to use one-hot word
         embeddings or tf.embedding_lookup() for the word embeddings.
       scope: (optional) variable scope. Defaults to "bert".
-      custom_getter: (optional) custom_getter for compute types other than float32.
-      compute_type: (optional) compute type for forward and back propagation.
+      compute_type: (optional) either float32 or float16. Only applies to GPUs.
 
     Raises:
       ValueError: The config is invalid or one of the input tensor shapes
@@ -171,8 +170,10 @@ class BertModel(object):
     if token_type_ids is None:
       token_type_ids = tf.zeros(shape=[batch_size, seq_length], dtype=tf.int32)
 
-    with tf.variable_scope(scope, default_name="bert", custom_getter=custom_getter):
+    with tf.variable_scope(scope, default_name="bert"):
       with tf.variable_scope("embeddings"):
+        # For good convergence with mixed precision training,
+	# it is important that the embedding codes remain fp32.
         # Perform embedding lookup on the word ids.
         (self.embedding_output, self.embedding_table) = embedding_lookup(
             input_ids=input_ids,
@@ -181,9 +182,6 @@ class BertModel(object):
             initializer_range=config.initializer_range,
             word_embedding_name="word_embeddings",
             use_one_hot_embeddings=use_one_hot_embeddings)
-
-        # conditionally convert inputs to fp16
-        self.embedding_output = tf.cast(self.embedding_output, compute_type)
 
         # Add positional embeddings and token type embeddings, then layer
         # normalize and perform dropout.
@@ -197,20 +195,21 @@ class BertModel(object):
             position_embedding_name="position_embeddings",
             initializer_range=config.initializer_range,
             max_position_embeddings=config.max_position_embeddings,
-            dropout_prob=config.hidden_dropout_prob,
-            compute_type=compute_type)
+            dropout_prob=config.hidden_dropout_prob)
 
       with tf.variable_scope("encoder"):
         # This converts a 2D mask of shape [batch_size, seq_length] to a 3D
         # mask of shape [batch_size, seq_length, seq_length] which is used
         # for the attention scores.
         attention_mask = create_attention_mask_from_input_mask(
-            input_ids, input_mask, compute_type)
+            input_ids, input_mask)
 
         # Run the stacked transformer.
         # `sequence_output` shape = [batch_size, seq_length, hidden_size].
         self.all_encoder_layers = transformer_model(
-            input_tensor=self.embedding_output,
+            # Cast input tensor to compute_type so that entire
+            # transformer stack runs with compute_type precision
+            input_tensor=tf.cast(self.embedding_output, compute_type),
             attention_mask=attention_mask,
             hidden_size=config.hidden_size,
             num_hidden_layers=config.num_hidden_layers,
@@ -440,8 +439,7 @@ def embedding_postprocessor(input_tensor,
                             position_embedding_name="position_embeddings",
                             initializer_range=0.02,
                             max_position_embeddings=512,
-                            dropout_prob=0.1,
-                            compute_type=tf.float32):
+                            dropout_prob=0.1):
   """Performs various post-processing on a word embedding tensor.
 
   Args:
@@ -489,7 +487,6 @@ def embedding_postprocessor(input_tensor,
     flat_token_type_ids = tf.reshape(token_type_ids, [-1])
     one_hot_ids = tf.one_hot(flat_token_type_ids, depth=token_type_vocab_size)
     token_type_embeddings = tf.matmul(one_hot_ids, token_type_table)
-    token_type_embeddings = tf.cast(token_type_embeddings, compute_type)
     token_type_embeddings = tf.reshape(token_type_embeddings,
                                        [batch_size, seq_length, width])
     output += token_type_embeddings
@@ -521,7 +518,6 @@ def embedding_postprocessor(input_tensor,
       for _ in range(num_dims - 2):
         position_broadcast_shape.append(1)
       position_broadcast_shape.extend([seq_length, width])
-      position_embeddings = tf.cast(position_embeddings, compute_type)
       position_embeddings = tf.reshape(position_embeddings,
                                        position_broadcast_shape)
       output += position_embeddings
@@ -530,7 +526,7 @@ def embedding_postprocessor(input_tensor,
   return output
 
 
-def create_attention_mask_from_input_mask(from_tensor, to_mask, compute_type=tf.float32):
+def create_attention_mask_from_input_mask(from_tensor, to_mask):
   """Create 3D attention mask from a 2D tensor mask.
 
   Args:
@@ -548,7 +544,7 @@ def create_attention_mask_from_input_mask(from_tensor, to_mask, compute_type=tf.
   to_seq_length = to_shape[1]
 
   to_mask = tf.cast(
-      tf.reshape(to_mask, [batch_size, 1, to_seq_length]), compute_type)
+      tf.reshape(to_mask, [batch_size, 1, to_seq_length]), tf.float32)
 
   # We don't assume that `from_tensor` is a mask (although it could be). We
   # don't actually care if we attend *from* padding tokens (only *to* padding)
@@ -556,7 +552,7 @@ def create_attention_mask_from_input_mask(from_tensor, to_mask, compute_type=tf.
   #
   # `broadcast_ones` = [batch_size, from_seq_length, 1]
   broadcast_ones = tf.ones(
-      shape=[batch_size, from_seq_length, 1], dtype=compute_type)
+      shape=[batch_size, from_seq_length, 1], dtype=tf.float32)
 
   # Here we broadcast along two dimensions to create the mask.
   mask = broadcast_ones * to_mask
@@ -718,7 +714,7 @@ def attention_layer(from_tensor,
     # Since attention_mask is 1.0 for positions we want to attend and 0.0 for
     # masked positions, this operation will create a tensor which is 0.0 for
     # positions we want to attend and -10000.0 for masked positions.
-    adder = (1.0 - attention_mask) * -10000.0
+    adder = (1.0 - tf.cast(attention_mask, attention_scores.dtype)) * -10000.0
 
     # Since we are adding it to the raw scores before the softmax, this is
     # effectively the same as removing these entirely.

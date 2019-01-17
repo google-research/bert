@@ -19,6 +19,7 @@ from __future__ import division
 from __future__ import print_function
 
 import os
+import time
 import modeling
 import optimization
 import tensorflow as tf
@@ -79,10 +80,6 @@ flags.DEFINE_integer("iterations_per_loop", 1000,
 
 flags.DEFINE_integer("max_eval_steps", 100, "Maximum number of eval steps.")
 
-flags.DEFINE_bool("use_fp16", False, "Whether to use fp32 or fp16 arithmetic on GPU.")
-
-flags.DEFINE_bool("use_xla", False, "Whether to use xla jit compiler on GPU.")
-
 flags.DEFINE_bool("use_tpu", False, "Whether to use TPU or GPU/CPU.")
 
 tf.flags.DEFINE_string(
@@ -109,11 +106,69 @@ flags.DEFINE_integer(
     "num_tpu_cores", 8,
     "Only used if `use_tpu` is True. Total number of TPU cores to use.")
 
-if FLAGS.use_tpu:
-  FLAGS.use_fp16 = False
-  FLAGS.use_xla = False
+flags.DEFINE_bool("report_loss", False, "Whether to report total loss during training.")
 
-from gpu_environment import compute_type,custom_getter
+flags.DEFINE_bool("horovod", False, "Whether to use horovod for multi-GPU runs.")
+
+flags.DEFINE_bool("use_fp16", False, "Whether to use fp32 or fp16 arithmetic on GPU.")
+
+flags.DEFINE_bool("use_xla", False, "Whether to enable XLA JIT compilation.")
+
+if FLAGS.horovod:
+  if FLAGS.use_tpu:
+    print('WARNING! Use of Horovod for TPU not supported.')
+    FLAGS.horovod = False
+  elif not FLAGS.do_train:
+    print('INFO! Turning off Horovod for evaluation.')
+    FLAGS.horovod = False
+if FLAGS.use_fp16:
+  if FLAGS.use_tpu:
+    print('WARNING! --use_fp16 not supported for TPU.')
+    FLAGS.use_fp16 = False
+
+# controls whether we are using horovod or not
+# in order to use horovod, user has to opt in and horovod has to be installed
+do_hvd = False
+if FLAGS.horovod:
+  try:
+    import horovod.tensorflow as hvd
+    do_hvd = True
+  except ImportError:
+    do_hvd = False
+    print('WARNING! Horovod is not installed.')
+
+if FLAGS.use_tpu:
+  compute_type = tf.float32
+else:
+  compute_type = tf.float16 if FLAGS.use_fp16 else tf.float32
+
+# report samples/sec, total loss and learning rate during training
+class _LogSessionRunHook(tf.train.SessionRunHook):
+  def __init__(self, global_batch_size, display_every=10):
+    self.global_batch_size = global_batch_size
+    self.display_every = display_every
+  def after_create_session(self, session, coord):
+    print('  Step samples/sec   Loss  Learning-rate')
+    self.elapsed_secs = 0.
+    self.count = 0
+  def before_run(self, run_context):
+    self.t0 = time.time()
+    return tf.train.SessionRunArgs(
+        fetches=['step_update:0', 'total_loss:0',
+                 'learning_rate:0'])
+  def after_run(self, run_context, run_values):
+    self.elapsed_secs += time.time() - self.t0
+    self.count += 1
+    global_step, total_loss, lr = run_values.results
+    print_step = global_step + 1 # One-based index for printing.
+    if print_step == 1 or print_step % self.display_every == 0:
+        dt = self.elapsed_secs / self.count
+        img_per_sec = self.global_batch_size / dt
+        print('%6i %11.1f %6.3f     %6.4e' %
+              (print_step, img_per_sec, total_loss, lr))
+        self.elapsed_secs = 0.
+        self.count = 0
+
 
 def model_fn_builder(bert_config, init_checkpoint, learning_rate,
                      num_train_steps, num_warmup_steps, use_tpu,
@@ -144,19 +199,21 @@ def model_fn_builder(bert_config, init_checkpoint, learning_rate,
         input_mask=input_mask,
         token_type_ids=segment_ids,
         use_one_hot_embeddings=use_one_hot_embeddings,
-        custom_getter=custom_getter,
-        compute_type=compute_type)
+	compute_type=compute_type)
 
     (masked_lm_loss,
      masked_lm_example_loss, masked_lm_log_probs) = get_masked_lm_output(
-         bert_config, model.get_sequence_output(), model.get_embedding_table(),
-         masked_lm_positions, masked_lm_ids, masked_lm_weights)
+         bert_config, model.get_sequence_output(), model.get_embedding_table(), 
+         masked_lm_positions, masked_lm_ids, 
+         masked_lm_weights)
 
     (next_sentence_loss, next_sentence_example_loss,
      next_sentence_log_probs) = get_next_sentence_output(
          bert_config, model.get_pooled_output(), next_sentence_labels)
 
     total_loss = masked_lm_loss + next_sentence_loss
+    # name total_loss node so we can look it up in loss reporting hook.
+    total_loss = tf.identity(total_loss, name='total_loss')
 
     tvars = tf.trainable_variables()
 
@@ -185,11 +242,9 @@ def model_fn_builder(bert_config, init_checkpoint, learning_rate,
 
     output_spec = None
     if mode == tf.estimator.ModeKeys.TRAIN:
-      # loss scale may need adjustment for new datasets
-      loss_scale = 128.0 if FLAGS.use_fp16 else 1.0
       train_op = optimization.create_optimizer(
           total_loss, learning_rate, num_train_steps, num_warmup_steps, use_tpu,
-          loss_scale)
+	  use_fp16=FLAGS.use_fp16, do_hvd=do_hvd)
 
       output_spec = tf.contrib.tpu.TPUEstimatorSpec(
           mode=mode,
@@ -256,7 +311,7 @@ def get_masked_lm_output(bert_config, input_tensor, output_weights, positions,
   """Get loss and log probs for the masked LM."""
   input_tensor = gather_indexes(input_tensor, positions)
 
-  with tf.variable_scope("cls/predictions", custom_getter=custom_getter):
+  with tf.variable_scope("cls/predictions"):
     # We apply one more non-linear transformation before the output layer.
     # This matrix is not used after pre-training.
     with tf.variable_scope("transform"):
@@ -274,7 +329,7 @@ def get_masked_lm_output(bert_config, input_tensor, output_weights, positions,
         "output_bias",
         shape=[bert_config.vocab_size],
         initializer=tf.zeros_initializer())
-    logits = tf.matmul(tf.cast(input_tensor,tf.float32), output_weights, transpose_b=True)
+    logits = tf.matmul(tf.cast(input_tensor, tf.float32), output_weights, transpose_b=True)
     logits = tf.nn.bias_add(logits, output_bias)
     log_probs = tf.nn.log_softmax(logits, axis=-1)
 
@@ -301,7 +356,7 @@ def get_next_sentence_output(bert_config, input_tensor, labels):
 
   # Simple binary classification. Note that 0 is "next sentence" and 1 is
   # "random sentence". This weight matrix is not used after pre-training.
-  with tf.variable_scope("cls/seq_relationship", custom_getter=custom_getter):
+  with tf.variable_scope("cls/seq_relationship"):
     output_weights = tf.get_variable(
         "output_weights",
         shape=[2, bert_config.hidden_size],
@@ -309,7 +364,7 @@ def get_next_sentence_output(bert_config, input_tensor, labels):
     output_bias = tf.get_variable(
         "output_bias", shape=[2], initializer=tf.zeros_initializer())
 
-    logits = tf.matmul(tf.cast(input_tensor,tf.float32), output_weights, transpose_b=True)
+    logits = tf.matmul(tf.cast(input_tensor, tf.float32), output_weights, transpose_b=True)
     logits = tf.nn.bias_add(logits, output_bias)
     log_probs = tf.nn.log_softmax(logits, axis=-1)
     labels = tf.reshape(labels, [-1])
@@ -367,6 +422,7 @@ def input_fn_builder(input_files,
     # For eval, we want no shuffling and parallel reading doesn't matter.
     if is_training:
       d = tf.data.Dataset.from_tensor_slices(tf.constant(input_files))
+      if do_hvd: d = d.shard(hvd.size(), hvd.rank())
       d = d.repeat()
       d = d.shuffle(buffer_size=len(input_files))
 
@@ -423,6 +479,9 @@ def main(_):
   if not FLAGS.do_train and not FLAGS.do_eval:
     raise ValueError("At least one of `do_train` or `do_eval` must be True.")
 
+  if do_hvd: 
+    hvd.init()
+
   bert_config = modeling.BertConfig.from_json_file(FLAGS.bert_config_file)
 
   tf.gfile.MakeDirs(FLAGS.output_dir)
@@ -441,30 +500,44 @@ def main(_):
         FLAGS.tpu_name, zone=FLAGS.tpu_zone, project=FLAGS.gcp_project)
 
   is_per_host = tf.contrib.tpu.InputPipelineConfig.PER_HOST_V2
-  if FLAGS.use_xla:
-    config = tf.ConfigProto()
-    config.graph_options.optimizer_options.global_jit_level = tf.OptimizerOptions.ON_1
-  else:
-    config = None
+  config = tf.ConfigProto()
+  if do_hvd: 
+    config.gpu_options.visible_device_list = str(hvd.local_rank())
+    config.gpu_options.allow_growth = True
+#    config.gpu_options.per_process_gpu_memory_fraction = 0.7
+  if FLAGS.use_xla: config.graph_options.optimizer_options.global_jit_level = tf.OptimizerOptions.ON_1	  
   run_config = tf.contrib.tpu.RunConfig(
       cluster=tpu_cluster_resolver,
       master=FLAGS.master,
       model_dir=FLAGS.output_dir,
-      save_checkpoints_steps=FLAGS.save_checkpoints_steps,
+      save_checkpoints_steps=FLAGS.save_checkpoints_steps if not do_hvd or hvd.rank() == 0 else None,
       session_config=config,
       tpu_config=tf.contrib.tpu.TPUConfig(
           iterations_per_loop=FLAGS.iterations_per_loop,
           num_shards=FLAGS.num_tpu_cores,
-          per_host_input_for_training=is_per_host))
+          per_host_input_for_training=is_per_host),
+      # This variable controls how often estimator reports examples/sec.
+      # Default value is every 100 steps.
+      # When --report_loss is True, we set to very large value to prevent
+      # default info reporting from estimator.
+      # Ideally we should set it to None, but that does not work.
+      log_step_count_steps=10000 if FLAGS.report_loss else 100)
 
   model_fn = model_fn_builder(
       bert_config=bert_config,
       init_checkpoint=FLAGS.init_checkpoint,
-      learning_rate=FLAGS.learning_rate,
+      learning_rate=FLAGS.learning_rate if not do_hvd else FLAGS.learning_rate*hvd.size(),
       num_train_steps=FLAGS.num_train_steps,
       num_warmup_steps=FLAGS.num_warmup_steps,
       use_tpu=FLAGS.use_tpu,
       use_one_hot_embeddings=FLAGS.use_tpu)
+
+  training_hooks = []
+  if FLAGS.report_loss and (not do_hvd or hvd.rank() == 0):
+    global_batch_size = FLAGS.train_batch_size if not do_hvd else FLAGS.train_batch_size*hvd.size()
+    training_hooks.append(_LogSessionRunHook(global_batch_size,100))
+  if do_hvd:
+    training_hooks.append(hvd.BroadcastGlobalVariablesHook(0))
 
   # If TPU is not available, this will fall back to normal Estimator on CPU
   # or GPU.
@@ -483,9 +556,12 @@ def main(_):
         max_seq_length=FLAGS.max_seq_length,
         max_predictions_per_seq=FLAGS.max_predictions_per_seq,
         is_training=True)
-    estimator.train(input_fn=train_input_fn, max_steps=FLAGS.num_train_steps)
+    estimator.train(
+        input_fn=train_input_fn, 
+        hooks=training_hooks,
+        max_steps=FLAGS.num_train_steps)
 
-  if FLAGS.do_eval:
+  if FLAGS.do_eval and (not do_hvd or hvd.rank() == 0):
     tf.logging.info("***** Running evaluation *****")
     tf.logging.info("  Batch size = %d", FLAGS.eval_batch_size)
 
@@ -510,15 +586,9 @@ if __name__ == "__main__":
   flags.mark_flag_as_required("input_file")
   flags.mark_flag_as_required("bert_config_file")
   flags.mark_flag_as_required("output_dir")
-  if not FLAGS.use_tpu:
-    # These info messages are printed for CPU and GPU runs,
-    # even though they only apply to GPU runs.
-    # Don't want to call tf.is_gpu_available() here because it messes with horovod
-    if not FLAGS.use_fp16: 
-      print('Info: Consider option --use_fp16 for better performance on GPU')
-    if not FLAGS.use_xla:
-      print('Info: Consider option --use_xla for better performance on GPU')
-  else:
-    assert not FLAGS.use_fp16, "--use_fp16 is only supported on GPU."
-    assert not FLAGS.use_xla, "--use_xla is only supported on GPU."
+  if FLAGS.use_xla and FLAGS.use_fp16:
+    print('WARNING! Combining --use_xla with --use_fp16 may prevent convergence.')
+    print('         This warning message will be removed when the underlying')
+    print('         issues have been fixed and you are running a TF version')
+    print('         that has that fix.')
   tf.app.run()
