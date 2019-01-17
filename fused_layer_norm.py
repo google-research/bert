@@ -112,7 +112,7 @@ def fused_layer_norm(inputs,
       outputs, mean, variance = nn.fused_batch_norm(
           inputs,
           ones, zeros,
-          epsilon=1e-12,
+          epsilon=1e-4,
           data_format="NCHW")
       outputs = array_ops.reshape(outputs, outputs_shape)
       if center and scale:
