@@ -836,6 +836,121 @@ Note that since our `sample_text.txt` file is very small, this example training
 will overfit that data in only a few steps and produce unrealistically high
 accuracy numbers.
 
+Many people have asked how to report the loss during pre-training. Here is 
+how you do it:
+
+```shell
+python run_pretraining.py \
+  --input_file=/tmp/tf_examples.tfrecord \
+  --output_dir=/tmp/pretraining_output \
+  --do_train=True \
+  --do_eval=True \
+  --bert_config_file=$BERT_BASE_DIR/bert_config.json \
+  --init_checkpoint=$BERT_BASE_DIR/bert_model.ckpt \
+  --train_batch_size=32 \
+  --max_seq_length=128 \
+  --max_predictions_per_seq=20 \
+  --num_train_steps=20 \
+  --num_warmup_steps=10 \
+  --learning_rate=2e-5 \
+  --report_loss
+```
+
+This will produce the following output during training:
+
+```shell
+Step samples/sec   Loss  Learning-rate
+ 100       122.9  9.019     3.9200e-06
+ 200       174.9  8.255     7.9200e-06
+ 300       174.8  7.962     1.1920e-05
+```
+
+Here is how to run the pre-training with FP16 arithmetic on GPUs. Doing this 
+triples throughput on most GPUs.
+
+```shell
+python run_pretraining.py \
+  --input_file=/tmp/tf_examples.tfrecord \
+  --output_dir=/tmp/pretraining_output \
+  --do_train=True \
+  --do_eval=True \
+  --bert_config_file=$BERT_BASE_DIR/bert_config.json \
+  --init_checkpoint=$BERT_BASE_DIR/bert_model.ckpt \
+  --train_batch_size=32 \
+  --max_seq_length=128 \
+  --max_predictions_per_seq=20 \
+  --num_train_steps=20 \
+  --num_warmup_steps=10 \
+  --learning_rate=2e-5 \
+  --use_fp16
+```
+
+Here is how to enable XLA JIT compilation for GPUs. Doing this boosts 
+throughput by 1.3x for FP32 and 1.7x for FP16 arithmetic.
+
+```shell
+
+python run_pretraining.py \
+  --input_file=/tmp/tf_examples.tfrecord \
+  --output_dir=/tmp/pretraining_output \
+  --do_train=True \
+  --do_eval=True \
+  --bert_config_file=$BERT_BASE_DIR/bert_config.json \
+  --init_checkpoint=$BERT_BASE_DIR/bert_model.ckpt \
+  --train_batch_size=32 \
+  --max_seq_length=128 \
+  --max_predictions_per_seq=20 \
+  --num_train_steps=20 \
+  --num_warmup_steps=10 \
+  --learning_rate=2e-5 \
+  --use_xla
+```
+
+This version of BERT supports pre-training on multiple GPUs. You need Horovod 
+installed for this. You also need to split your input dataset over multiple 
+files (at least one per GPU). Assuming you have split your input dataset 
+over 8 files named tf_examples.part01.tfrecord through 
+tf_examples.part.08.tfrecord, here is how you run it:
+
+```shell
+mpiexec --allow-run-as-root --bind-to socket -np 8 python run_pretraining.py \
+  --input_file=/tmp/tf_examples.part01.tfrecord,/tmp/tf_examples.part02.tfrecord,/tmp/tf_examples.part03.tfrecord,/tmp/tf_examples.part04.tfrecord,/tmp/tf_examples.part05.tfrecord,/tmp/tf_examples.part06.tfrecord,/tmp/tf_examples.part07.tfrecord,/tmp/tf_examples.part08.tfrecord \
+  --output_dir=/tmp/pretraining_output \
+  --do_train=True \
+  --do_eval=True \
+  --bert_config_file=$BERT_BASE_DIR/bert_config.json \
+  --init_checkpoint=$BERT_BASE_DIR/bert_model.ckpt \
+  --train_batch_size=32 \
+  --max_seq_length=128 \
+  --max_predictions_per_seq=20 \
+  --num_train_steps=20 \
+  --num_warmup_steps=10 \
+  --learning_rate=2e-5 \
+  --horovod
+```
+
+You can combine --report_loss, --use_fp16, --use_xla and --horovod:
+
+```shell
+mpiexec --allow-run-as-root --bind-to socket -np 8 python run_pretraining.py \
+  --input_file=/tmp/tf_examples.part01.tfrecord,/tmp/tf_examples.part02.tfrecord,/tmp/tf_examples.part03.tfrecord,/tmp/tf_examples.part04.tfrecord,/tmp/tf_examples.part05.tfrecord,/tmp/tf_examples.part06.tfrecord,/tmp/tf_examples.part07.tfrecord,/tmp/tf_examples.part08.tfrecord \
+  --output_dir=/tmp/pretraining_output \
+  --do_train=True \
+  --do_eval=True \
+  --bert_config_file=$BERT_BASE_DIR/bert_config.json \
+  --init_checkpoint=$BERT_BASE_DIR/bert_model.ckpt \
+  --train_batch_size=32 \
+  --max_seq_length=128 \
+  --max_predictions_per_seq=20 \
+  --num_train_steps=20 \
+  --num_warmup_steps=10 \
+  --learning_rate=2e-5 \
+  --report_loss \
+  --use_fp16 \
+  --use_xla \
+  --horovod
+```
+
 ### Pre-training tips and caveats
 
 *   **If using your own vocabulary, make sure to change `vocab_size` in
