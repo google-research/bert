@@ -18,6 +18,7 @@ import random
 
 app = Flask(__name__)
 
+
 @app.route("/", methods = ['GET'])
 def hello():
   return "Hello BERT predicting AG NEWS! Try posting a string to this url"
@@ -25,6 +26,9 @@ def hello():
 
 @app.route("/", methods = ['POST'])
 def predict():
+  # MODEL PARAMS
+  max_seq_length = 128
+
   channel = grpc.insecure_channel("bert-agnews:8500")
   stub = prediction_service_pb2_grpc.PredictionServiceStub(channel)
 
@@ -36,7 +40,7 @@ def predict():
   content = request.get_json()
   request_id = str(random.randint(1, 9223372036854775807))
   inputExample = processor._create_example([request_id, content['description']], 'test')
-  tf_example = classifiers.from_record_to_tf_example(3, inputExample, label_list, 64, tokenizer)
+  tf_example = classifiers.from_record_to_tf_example(3, inputExample, label_list, max_seq_length, tokenizer)
   model_input = tf_example.SerializeToString()
 
   # Send request
