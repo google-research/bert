@@ -57,7 +57,7 @@ def predict():
 
   model_request.inputs['examples'].CopyFrom(tensor_proto)
   result = stub.Predict(model_request, 10.0)  # 10 secs timeout
-  result = tf.make_ndarray(result.outputs["output"])
+  result = tf.make_ndarray(result.outputs["probabilities"])
   pretty_result = "Predicted Label: " + label_list[result[0].argmax(axis=0)]
   app.logger.info("Predicted Label: %s", label_list[result[0].argmax(axis=0)])
   return pretty_result
