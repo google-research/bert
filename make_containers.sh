@@ -18,11 +18,20 @@ docker push $DOCKER_USER/$IMAGE_NAME:$VER
 
 # Create client to call Bert Model
 CLIENT_IMAGE_NAME=bert_agnews_client
-CLIENT_VER=v1
+CLIENT_VER=v2
+DOCKER_USER=lapolonio
 git clone https://github.com/lapolonio/bert.git
 cd ~/bert
 mkdir asset
 gsutil cp gs://cloud-tpu-checkpoints/bert/uncased_L-12_H-768_A-12/vocab.txt asset/
 docker build -t $USER/$CLIENT_IMAGE_NAME .
 docker tag $USER/$CLIENT_IMAGE_NAME $DOCKER_USER/$CLIENT_IMAGE_NAME:$CLIENT_VER
+docker tag $USER/$CLIENT_IMAGE_NAME $DOCKER_USER/$CLIENT_IMAGE_NAME:$CLIENT_VER
 docker push $DOCKER_USER/$CLIENT_IMAGE_NAME:$CLIENT_VER
+
+
+# run locally install gcloud and kompose
+gcloud container clusters create bert-cluster
+gcloud config set container/cluster bert-cluster
+gcloud container clusters get-credentials bert-cluster --zone us-east1-b --project bert-227121
+kompose convert --stdout | kubectl apply -f -
