@@ -16,7 +16,7 @@ services:
     labels:
       kompose.service.type: LoadBalancer
   agnews-client:
-    image: "lapolonio/bert_agnews_client:v2"
+    image: "lapolonio/bert_agnews_client:v3"
     ports:
       - "5000:5000"
     depends_on:

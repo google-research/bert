@@ -17,11 +17,12 @@ docker tag $USER/$IMAGE_NAME $DOCKER_USER/$IMAGE_NAME:$VER
 docker push $DOCKER_USER/$IMAGE_NAME:$VER
 
 # Create client to call Bert Model
-CLIENT_IMAGE_NAME=bert_agnews_client
-CLIENT_VER=v2
-DOCKER_USER=lapolonio
 git clone https://github.com/lapolonio/bert.git
 cd ~/bert
+
+CLIENT_IMAGE_NAME=bert_agnews_client
+CLIENT_VER=v3
+DOCKER_USER=lapolonio
 mkdir asset
 gsutil cp gs://cloud-tpu-checkpoints/bert/uncased_L-12_H-768_A-12/vocab.txt asset/
 docker build -t $USER/$CLIENT_IMAGE_NAME .
