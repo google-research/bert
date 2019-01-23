@@ -675,7 +675,7 @@ def create_model(bert_config, is_training, input_ids, input_mask, segment_ids,
 
 def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
                      num_train_steps, num_warmup_steps, use_tpu,
-                     use_one_hot_embeddings):
+                     use_one_hot_embeddings, do_serve):
   """Returns `model_fn` closure for TPUEstimator."""
 
   def model_fn(features, labels, mode, params):  # pylint: disable=unused-argument
@@ -714,7 +714,7 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
           return tf.train.Scaffold()
 
         scaffold_fn = tpu_scaffold
-      elif not FLAGS.do_serve:
+      elif not do_serve:
         tf.train.init_from_checkpoint(init_checkpoint, assignment_map)
 
     tf.logging.info("**** Trainable Variables ****")
@@ -910,7 +910,9 @@ def main(_):
       num_train_steps=num_train_steps,
       num_warmup_steps=num_warmup_steps,
       use_tpu=FLAGS.use_tpu,
-      use_one_hot_embeddings=FLAGS.use_tpu)
+      use_one_hot_embeddings=FLAGS.use_tpu,
+      do_serve=FLAGS.do_serve
+  )
 
   # If TPU is not available, this will fall back to normal Estimator on CPU
   # or GPU.
