@@ -75,24 +75,14 @@ def validate_case_matches_checkpoint(do_lower_case, init_checkpoint):
                                           model_name, case_name, opposite_flag))
 
 
-def convert_to_unicode(text):
+def convert_to_unicode(text, errors="ignore"):
   """Converts `text` to Unicode (if it's not already), assuming utf-8 input."""
-  if six.PY3:
-    if isinstance(text, str):
-      return text
-    elif isinstance(text, bytes):
-      return text.decode("utf-8", "ignore")
-    else:
-      raise ValueError("Unsupported string type: %s" % (type(text)))
-  elif six.PY2:
-    if isinstance(text, str):
-      return text.decode("utf-8", "ignore")
-    elif isinstance(text, unicode):
-      return text
-    else:
-      raise ValueError("Unsupported string type: %s" % (type(text)))
+  if isinstance(text, six.text_type):
+    return text
+  elif isinstance(text, six.binary_type):
+    return text.decode("utf-8", errors)
   else:
-    raise ValueError("Not running on Python2 or Python 3?")
+    raise ValueError("Unsupported string type: %s" % (type(text)))
 
 
 def printable_text(text):
@@ -100,17 +90,15 @@ def printable_text(text):
 
   # These functions want `str` for both Python2 and Python3, but in one case
   # it's a Unicode string and in the other it's a byte string.
+  if isinstance(text, str):
+    return text
   if six.PY3:
-    if isinstance(text, str):
-      return text
-    elif isinstance(text, bytes):
+    if isinstance(text, bytes):
       return text.decode("utf-8", "ignore")
     else:
       raise ValueError("Unsupported string type: %s" % (type(text)))
   elif six.PY2:
-    if isinstance(text, str):
-      return text
-    elif isinstance(text, unicode):
+    if isinstance(text, unicode):
       return text.encode("utf-8")
     else:
       raise ValueError("Unsupported string type: %s" % (type(text)))
@@ -135,10 +123,7 @@ def load_vocab(vocab_file):
 
 def convert_by_vocab(vocab, items):
   """Converts a sequence of [tokens|ids] using the vocab."""
-  output = []
-  for item in items:
-    output.append(vocab[item])
-  return output
+  output = [vocab[item] for item in items]
 
 
 def convert_tokens_to_ids(vocab, tokens):
@@ -151,11 +136,7 @@ def convert_ids_to_tokens(inv_vocab, ids):
 
 def whitespace_tokenize(text):
   """Runs basic whitespace cleaning and splitting on a piece of text."""
-  text = text.strip()
-  if not text:
-    return []
-  tokens = text.split()
-  return tokens
+  return text.split() if text.strip() else []
 
 
 class FullTokenizer(object):
@@ -210,8 +191,7 @@ class BasicTokenizer(object):
     split_tokens = []
     for token in orig_tokens:
       if self.do_lower_case:
-        token = token.lower()
-        token = self._run_strip_accents(token)
+        token = self._run_strip_accents(token.lower())
       split_tokens.extend(self._run_split_on_punc(token))
 
     output_tokens = whitespace_tokenize(" ".join(split_tokens))
@@ -254,9 +234,7 @@ class BasicTokenizer(object):
     for char in text:
       cp = ord(char)
       if self._is_chinese_char(cp):
-        output.append(" ")
-        output.append(char)
-        output.append(" ")
+        output.append(" {} ".format(char))
       else:
         output.append(char)
     return "".join(output)
@@ -271,29 +249,23 @@ class BasicTokenizer(object):
     # as is Japanese Hiragana and Katakana. Those alphabets are used to write
     # space-separated words, so they are not treated specially and handled
     # like the all of the other languages.
-    if ((cp >= 0x4E00 and cp <= 0x9FFF) or  #
-        (cp >= 0x3400 and cp <= 0x4DBF) or  #
-        (cp >= 0x20000 and cp <= 0x2A6DF) or  #
-        (cp >= 0x2A700 and cp <= 0x2B73F) or  #
-        (cp >= 0x2B740 and cp <= 0x2B81F) or  #
-        (cp >= 0x2B820 and cp <= 0x2CEAF) or
-        (cp >= 0xF900 and cp <= 0xFAFF) or  #
-        (cp >= 0x2F800 and cp <= 0x2FA1F)):  #
-      return True
-
-    return False
+    return bool(0x4E00 <= cp <= 0x9FFF or  #
+                0x3400 <= cp <= 0x4DBF or  #
+                0x20000 <= cp <= 0x2A6DF or  #
+                0x2A700 <= cp <= 0x2B73F or  #
+                0x2B740 <= cp <= 0x2B81F or  #
+                0x2B820 <= cp <= 0x2CEAF or
+                0xF900 <= cp <= 0xFAFF or  #
+                0x2F800 <= cp <= 0x2FA1F)  #
 
   def _clean_text(self, text):
     """Performs invalid character removal and whitespace cleanup on text."""
     output = []
     for char in text:
       cp = ord(char)
-      if cp == 0 or cp == 0xfffd or _is_control(char):
+      if cp in (0, 0xfffd) or _is_control(char):
         continue
-      if _is_whitespace(char):
-        output.append(" ")
-      else:
-        output.append(char)
+      output.append(" " if _is_whitespace(char) else char)
     return "".join(output)
 
 
@@ -363,24 +335,18 @@ def _is_whitespace(char):
   """Checks whether `chars` is a whitespace character."""
   # \t, \n, and \r are technically contorl characters but we treat them
   # as whitespace since they are generally considered as such.
-  if char == " " or char == "\t" or char == "\n" or char == "\r":
+  if char in (" ", "\t", "\n", "\r"):
     return True
-  cat = unicodedata.category(char)
-  if cat == "Zs":
-    return True
-  return False
+  return bool(unicodedata.category(char) == "Zs")
 
 
 def _is_control(char):
   """Checks whether `chars` is a control character."""
   # These are technically control characters but we count them as whitespace
   # characters.
-  if char == "\t" or char == "\n" or char == "\r":
+  if char in ("\t", "\n", "\r"):
     return False
-  cat = unicodedata.category(char)
-  if cat.startswith("C"):
-    return True
-  return False
+  return bool(unicodedata.category(char).startswith("C"))
 
 
 def _is_punctuation(char):
@@ -390,10 +356,7 @@ def _is_punctuation(char):
   # Characters such as "^", "$", and "`" are not in the Unicode
   # Punctuation class but we treat them as punctuation anyways, for
   # consistency.
-  if ((cp >= 33 and cp <= 47) or (cp >= 58 and cp <= 64) or
-      (cp >= 91 and cp <= 96) or (cp >= 123 and cp <= 126)):
+  if (33 <= cp <= 47 or 58 <= cp <= 64 or
+      91 <= cp <= 96 or 123 <= cp <= 126):
     return True
-  cat = unicodedata.category(char)
-  if cat.startswith("P"):
-    return True
-  return False
+  return bool(unicodedata.category(char).startswith("P"))
