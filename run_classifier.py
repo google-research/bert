@@ -303,6 +303,7 @@ class ColaProcessor(DataProcessor):
 
   def get_labels(self):
     """See base class."""
+    print("############################################## : AAAAAAAAAAAAAA")
     return ["0", "1"]
 
   def _create_examples(self, lines, set_type):
