@@ -75,14 +75,9 @@ def validate_case_matches_checkpoint(do_lower_case, init_checkpoint):
                                           model_name, case_name, opposite_flag))
 
 
-def convert_to_unicode(text, errors="ignore"):
+def convert_to_unicode(text):
   """Converts `text` to Unicode (if it's not already), assuming utf-8 input."""
-  if isinstance(text, six.text_type):
-    return text
-  elif isinstance(text, six.binary_type):
-    return text.decode("utf-8", errors)
-  else:
-    raise ValueError("Unsupported string type: %s" % (type(text)))
+  return six.ensure_text(text, encoding="utf-8", errors="ignore")
 
 
 def printable_text(text):
