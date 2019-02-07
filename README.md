@@ -1,5 +1,10 @@
 # BERT
 
+**\*\*\*\*\* New February 7th, 2019: TfHub Module \*\*\*\*\***
+
+BERT has been uploaded to [TensorFlow Hub](https://tfhub.dev). See
+`run_classifier_with_tfhub.py` for an example of how to use the TF Hub module.
+
 **\*\*\*\*\* New November 23rd, 2018: Un-normalized multilingual model + Thai +
 Mongolian \*\*\*\*\***
 

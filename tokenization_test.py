@@ -18,9 +18,9 @@ from __future__ import print_function
 
 import os
 import tempfile
+import tokenization
 import six
 import tensorflow as tf
-import tokenization
 
 
 class TokenizationTest(tf.test.TestCase):
