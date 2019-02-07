@@ -23,6 +23,7 @@ import copy
 import json
 import math
 import re
+import numpy as np
 import six
 import tensorflow as tf
 
@@ -133,7 +134,7 @@ class BertModel(object):
                input_ids,
                input_mask=None,
                token_type_ids=None,
-               use_one_hot_embeddings=True,
+               use_one_hot_embeddings=False,
                scope=None):
     """Constructor for BertModel.
 
@@ -145,9 +146,7 @@ class BertModel(object):
       input_mask: (optional) int32 Tensor of shape [batch_size, seq_length].
       token_type_ids: (optional) int32 Tensor of shape [batch_size, seq_length].
       use_one_hot_embeddings: (optional) bool. Whether to use one-hot word
-        embeddings or tf.embedding_lookup() for the word embeddings. On the TPU,
-        it is much faster if this is True, on the CPU or GPU, it is faster if
-        this is False.
+        embeddings or tf.embedding_lookup() for the word embeddings.
       scope: (optional) variable scope. Defaults to "bert".
 
     Raises:
@@ -262,20 +261,20 @@ class BertModel(object):
     return self.embedding_table
 
 
-def gelu(input_tensor):
+def gelu(x):
   """Gaussian Error Linear Unit.
 
   This is a smoother version of the RELU.
   Original paper: https://arxiv.org/abs/1606.08415
-
   Args:
-    input_tensor: float Tensor to perform activation.
+    x: float Tensor to perform activation.
 
   Returns:
-    `input_tensor` with the GELU activation applied.
+    `x` with the GELU activation applied.
   """
-  cdf = 0.5 * (1.0 + tf.erf(input_tensor / tf.sqrt(2.0)))
-  return input_tensor * cdf
+  cdf = 0.5 * (1.0 + tf.tanh(
+      (np.sqrt(2 / np.pi) * (x + 0.044715 * tf.pow(x, 3)))))
+  return x * cdf
 
 
 def get_activation(activation_string):
@@ -394,8 +393,7 @@ def embedding_lookup(input_ids,
     initializer_range: float. Embedding initialization range.
     word_embedding_name: string. Name of the embedding table.
     use_one_hot_embeddings: bool. If True, use one-hot method for word
-      embeddings. If False, use `tf.nn.embedding_lookup()`. One hot is better
-      for TPUs.
+      embeddings. If False, use `tf.gather()`.
 
   Returns:
     float Tensor of shape [batch_size, seq_length, embedding_size].
@@ -413,12 +411,12 @@ def embedding_lookup(input_ids,
       shape=[vocab_size, embedding_size],
       initializer=create_initializer(initializer_range))
 
+  flat_input_ids = tf.reshape(input_ids, [-1])
   if use_one_hot_embeddings:
-    flat_input_ids = tf.reshape(input_ids, [-1])
     one_hot_input_ids = tf.one_hot(flat_input_ids, depth=vocab_size)
     output = tf.matmul(one_hot_input_ids, embedding_table)
   else:
-    output = tf.nn.embedding_lookup(embedding_table, input_ids)
+    output = tf.gather(embedding_table, flat_input_ids)
 
   input_shape = get_shape_list(input_ids)
 
