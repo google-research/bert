@@ -3,7 +3,8 @@
 **\*\*\*\*\* New February 7th, 2019: TfHub Module \*\*\*\*\***
 
 BERT has been uploaded to [TensorFlow Hub](https://tfhub.dev). See
-`run_classifier_with_tfhub.py` for an example of how to use the TF Hub module.
+`run_classifier_with_tfhub.py` for an example of how to use the TF Hub module, 
+or run an example in the browser on [Colab](https://colab.sandbox.google.com/github/google-research/bert/predicting_movie_reviews_with_bert_on_tf_hub.ipynb).
 
 **\*\*\*\*\* New November 23rd, 2018: Un-normalized multilingual model + Thai +
 Mongolian \*\*\*\*\***
