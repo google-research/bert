@@ -27,6 +27,7 @@ import numpy as np
 import six
 import tensorflow as tf
 
+from gpu_environment import get_custom_getter
 
 class BertConfig(object):
   """Configuration for `BertModel`."""
@@ -136,7 +137,7 @@ class BertModel(object):
                token_type_ids=None,
                use_one_hot_embeddings=False,
                scope=None,
-	       compute_type=tf.float32):
+               compute_type=tf.float32):
     """Constructor for BertModel.
 
     Args:
@@ -149,7 +150,6 @@ class BertModel(object):
       use_one_hot_embeddings: (optional) bool. Whether to use one-hot word
         embeddings or tf.embedding_lookup() for the word embeddings.
       scope: (optional) variable scope. Defaults to "bert".
-      compute_type: (optional) either float32 or float16. Only applies to GPUs.
 
     Raises:
       ValueError: The config is invalid or one of the input tensor shapes
@@ -170,10 +170,8 @@ class BertModel(object):
     if token_type_ids is None:
       token_type_ids = tf.zeros(shape=[batch_size, seq_length], dtype=tf.int32)
 
-    with tf.variable_scope(scope, default_name="bert"):
+    with tf.variable_scope(scope, default_name="bert", custom_getter=get_custom_getter(compute_type)):
       with tf.variable_scope("embeddings"):
-        # For good convergence with mixed precision training,
-	# it is important that the embedding codes remain fp32.
         # Perform embedding lookup on the word ids.
         (self.embedding_output, self.embedding_table) = embedding_lookup(
             input_ids=input_ids,
@@ -207,9 +205,7 @@ class BertModel(object):
         # Run the stacked transformer.
         # `sequence_output` shape = [batch_size, seq_length, hidden_size].
         self.all_encoder_layers = transformer_model(
-            # Cast input tensor to compute_type so that entire
-            # transformer stack runs with compute_type precision
-            input_tensor=tf.cast(self.embedding_output, compute_type),
+            input_tensor=tf.saturate_cast(self.embedding_output, compute_type),
             attention_mask=attention_mask,
             hidden_size=config.hidden_size,
             num_hidden_layers=config.num_hidden_layers,
@@ -221,7 +217,7 @@ class BertModel(object):
             initializer_range=config.initializer_range,
             do_return_all_layers=True)
 
-      self.sequence_output = self.all_encoder_layers[-1]
+      self.sequence_output = tf.cast(self.all_encoder_layers[-1], tf.float32)
       # The "pooler" converts the encoded sequence tensor of shape
       # [batch_size, seq_length, hidden_size] to a tensor of shape
       # [batch_size, hidden_size]. This is necessary for segment-level
