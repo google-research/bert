@@ -21,9 +21,9 @@ from __future__ import print_function
 import collections
 import csv
 import os
-import modeling
-import optimization
-import tokenization
+from bert import modeling
+from bert import optimization
+from bert import tokenization
 import tensorflow as tf
 
 flags = tf.flags
