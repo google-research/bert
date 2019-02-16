@@ -18,8 +18,8 @@ from __future__ import print_function
 
 import os
 import tempfile
-
 import tokenization
+import six
 import tensorflow as tf
 
 
@@ -31,7 +31,11 @@ class TokenizationTest(tf.test.TestCase):
         "##ing", ","
     ]
     with tempfile.NamedTemporaryFile(delete=False) as vocab_writer:
-      vocab_writer.write("".join([x + "\n" for x in vocab_tokens]))
+      if six.PY2:
+        vocab_writer.write("".join([x + "\n" for x in vocab_tokens]))
+      else:
+        vocab_writer.write("".join(
+            [x + "\n" for x in vocab_tokens]).encode("utf-8"))
 
       vocab_file = vocab_writer.name
 

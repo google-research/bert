@@ -20,7 +20,6 @@ from __future__ import print_function
 
 import collections
 import random
-
 import tokenization
 import tensorflow as tf
 
