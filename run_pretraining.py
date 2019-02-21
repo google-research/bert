@@ -121,29 +121,49 @@ class _LogSessionRunHook(tf.train.SessionRunHook):
     self.display_every = display_every
     self.hvd_rank = hvd_rank
   def after_create_session(self, session, coord):
-    print('  Step samples/sec   MLM Loss  NSP Loss  Loss  Learning-rate')
+    if FLAGS.use_fp16:
+      print('  Step samples/sec   MLM Loss  NSP Loss  Loss  Learning-rate  Loss-scaler')
+    else:
+      print('  Step samples/sec   MLM Loss  NSP Loss  Loss  Learning-rate')
     self.elapsed_secs = 0.
     self.count = 0
   def before_run(self, run_context):
     self.t0 = time.time()
-    return tf.train.SessionRunArgs(
-        fetches=['step_update:0', 'total_loss:0',
-                 'learning_rate:0', 'nsp_loss:0',
-                 'mlm_loss:0'])
+    if FLAGS.use_fp16:
+      return tf.train.SessionRunArgs(
+          fetches=['step_update:0', 'total_loss:0',
+                   'learning_rate:0', 'nsp_loss:0',
+                   'mlm_loss:0', 'loss_scale:0'])
+    else:
+      return tf.train.SessionRunArgs(
+          fetches=['step_update:0', 'total_loss:0',
+                   'learning_rate:0', 'nsp_loss:0',
+                   'mlm_loss:0'])
   def after_run(self, run_context, run_values):
     self.elapsed_secs += time.time() - self.t0
     self.count += 1
-    global_step, total_loss, lr, nsp_loss, mlm_loss = run_values.results
+    if FLAGS.use_fp16:
+      global_step, total_loss, lr, nsp_loss, mlm_loss, loss_scaler = run_values.results
+    else:
+      global_step, total_loss, lr, nsp_loss, mlm_loss = run_values.results
     print_step = global_step + 1 # One-based index for printing.
     if print_step == 1 or print_step % self.display_every == 0:
         dt = self.elapsed_secs / self.count
         img_per_sec = self.global_batch_size / dt
         if self.hvd_rank >= 0:
-          print('%2d :: %6i %11.1f %10.4e %10.4e %6.3f     %6.4e' %
-                (self.hvd_rank, print_step, img_per_sec, mlm_loss, nsp_loss, total_loss, lr))
+          if FLAGS.use_fp16:
+            print('%2d :: %6i %11.1f %10.4e %10.4e %6.3f     %6.4e  %6.4e' %
+                  (self.hvd_rank, print_step, img_per_sec, mlm_loss, nsp_loss, total_loss, lr, loss_scaler))
+          else:
+            print('%2d :: %6i %11.1f %10.4e %10.4e %6.3f     %6.4e  %6.4e' %
+                  (self.hvd_rank, print_step, img_per_sec, mlm_loss, nsp_loss, total_loss, lr, loss_scaler))
         else:
-          print('%6i %11.1f %10.4e %10.4e %6.3f     %6.4e' %
-                (print_step, img_per_sec, mlm_loss, nsp_loss, total_loss, lr))
+          if FLAGS.use_fp16:
+            print('%6i %11.1f %10.4e %10.4e %6.3f     %6.4e  %6.4e' %
+                  (print_step, img_per_sec, mlm_loss, nsp_loss, total_loss, lr, loss_scaler))
+          else:
+            print('%6i %11.1f %10.4e %10.4e %6.3f     %6.4e  %6.4e' %
+                  (print_step, img_per_sec, mlm_loss, nsp_loss, total_loss, lr))
         self.elapsed_secs = 0.
         self.count = 0
 

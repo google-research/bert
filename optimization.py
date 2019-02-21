@@ -66,56 +66,36 @@ def create_optimizer(loss, init_lr, num_train_steps, num_warmup_steps, use_tpu, 
 
   if use_tpu:
     optimizer = tf.contrib.tpu.CrossShardOptimizer(optimizer)
+  else:
+    if hvd is not None:
+      from horovod.tensorflow.compression import Compression
+      optimizer = hvd.DistributedOptimizer(optimizer, sparse_as_dense=True, compression=Compression.fp16)
+    if use_fp16:
+      loss_scale_manager = tf.contrib.mixed_precision.ExponentialUpdateLossScaleManager(init_loss_scale=2**32, incr_every_n_steps=1000, decr_every_n_nan_or_inf=2, decr_ratio=0.5)
+      optimizer = tf.contrib.mixed_precision.LossScaleOptimizer(optimizer, loss_scale_manager)
 
   tvars = tf.trainable_variables()
-  grads = tf.gradients(loss if not use_fp16 else loss*128.0, tvars)
-
-  # average gradients with horovod and divide by loss_scale
-  if hvd is not None:
-    from horovod.tensorflow.compression import Compression
-    averaged_gradients = []
-    with tf.name_scope("Horovod_Allreduce"):
-      for grad in grads:
-        if grad is not None:
-          if isinstance(grad, tf.IndexedSlices):
-            grad = tf.convert_to_tensor(grad)
-          if hvd.size() > 1:
-            avg_grad = hvd.allreduce(tf.cast(grad, tf.float16),
-                                     device_dense='',
-                                     device_sparse='',
-                                     compression=Compression.none)
-          else:
-            avg_grad = grad
-          if use_fp16:
-            averaged_gradients.append(tf.cast(avg_grad, tf.float32)/128.0)
-          else:
-            averaged_gradients.append(tf.cast(avg_grad, tf.float32))
-        else:
-          averaged_gradients.append(None)
-    grads = averaged_gradients
-  # divide gradients by loss_scale
-  elif use_fp16:
-    fp32_grads = []
-    for grad in grads:
-      if grad is not None:
-        if isinstance(grad, tf.IndexedSlices):
-          grad = tf.convert_to_tensor(grad)
-        grad = grad/128.0
-        fp32_grads.append(grad)
-      else:
-        fp32_grads.append(None)
-    grads = fp32_grads
+  grads_and_vars = optimizer.compute_gradients(loss, tvars)
+  grads = [g for g,v in grads_and_vars]
+  all_are_finite = tf.reduce_all([tf.reduce_all(tf.is_finite(g)) for g in grads]) if use_fp16 else True
 
   # This is how the model was pre-trained.
-  (grads, _) = tf.clip_by_global_norm(grads, clip_norm=1.0)
+  # ensure global norm is a finite number 
+  # to prevent clip_by_global_norm from having a hizzy fit.
+  (clipped_grads, _) = tf.clip_by_global_norm(
+        grads, clip_norm=1.0, 
+        use_norm=tf.cond(
+            all_are_finite,
+            lambda: tf.global_norm(grads),
+            lambda: tf.constant(1.0)))
 
   train_op = optimizer.apply_gradients(
-      zip(grads, tvars), global_step=global_step)
+      list(zip(clipped_grads, tvars)), global_step=global_step)
 
   # Normally the global step update is done inside of `apply_gradients`.
   # However, `AdamWeightDecayOptimizer` doesn't do this. But if you use
   # a different optimizer, you should probably take this line out.
-  new_global_step = global_step + 1
+  new_global_step = tf.cond(all_are_finite, lambda: global_step+1, lambda: global_step)
   new_global_step = tf.identity(new_global_step, name='step_update')
   train_op = tf.group(train_op, [global_step.assign(new_global_step)])
   return train_op
