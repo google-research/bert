@@ -616,7 +616,7 @@ def create_model(bert_config, is_training, input_ids, input_mask, segment_ids,
     return (loss, per_example_loss, logits, probabilities)
 
 
-def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
+def model_fn_builder(bert_config, num_labels, learning_rate,
                      num_train_steps, num_warmup_steps, use_tpu,
                      use_one_hot_embeddings):
   """Returns `model_fn` closure for TPUEstimator."""
@@ -820,7 +820,6 @@ def main(_):
   model_fn = model_fn_builder(
       bert_config=bert_config,
       num_labels=len(label_list),
-      init_checkpoint=FLAGS.init_checkpoint,
       learning_rate=FLAGS.learning_rate,
       num_train_steps=num_train_steps,
       num_warmup_steps=num_warmup_steps,
@@ -856,22 +855,21 @@ def main(_):
     # We use a SessionRunHook to load the pre-trained BERT model. This is only needed in the training phase.
     #
     class InitHooks(tf.train.SessionRunHook):
-        def __init__(self, init_checkpoint=None):
-            self._init_checkpoint = init_checkpoint
+      def __init__(self, init_checkpoint=None):
+        self._init_checkpoint = init_checkpoint
 
-        def begin(self):
-            tvars = tf.trainable_variables()
-            initialized_variable_names = {}
+      def begin(self):
+        tvars = tf.trainable_variables()
+        initialized_variable_names = {}
 
-            (assignment_map, initialized_variable_names) = modeling.get_assignment_map_from_checkpoint(tvars, self._init_checkpoint)
-            tf.train.init_from_checkpoint(self._init_checkpoint, assignment_map)
-            tf.logging.info("**** Trainable Variables ****")
-            for var in tvars:
-                init_string = ""
-                if var.name in initialized_variable_names:
-                    init_string = ", *INIT_FROM_CKPT*"
-                tf.logging.info("  name = %s, shape = %s%s", var.name, var.shape,
-                                init_string)
+        (assignment_map, initialized_variable_names) = modeling.get_assignment_map_from_checkpoint(tvars, self._init_checkpoint)
+        tf.train.init_from_checkpoint(self._init_checkpoint, assignment_map)
+        tf.logging.info("**** Trainable Variables ****")
+        for var in tvars:
+          init_string = ""
+          if var.name in initialized_variable_names:
+            init_string = ", *INIT_FROM_CKPT*"
+          tf.logging.info("  name = %s, shape = %s%s", var.name, var.shape, init_string)
 
     
     estimator.train(input_fn=train_input_fn, hooks=[InitHooks(FLAGS.init_checkpoint)], max_steps=num_train_steps)
