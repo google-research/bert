@@ -123,6 +123,10 @@ flags.DEFINE_integer(
     "num_tpu_cores", 8,
     "Only used if `use_tpu` is True. Total number of TPU cores to use.")
 
+flags.DEFINE_bool("use_fp16", False, "Whether to use fp32 or fp16 arithmetic on GPU.")
+
+flags.DEFINE_bool("use_xla", False, "Whether to enable XLA JIT compilation.")
+
 
 class InputExample(object):
   """A single training/test example for simple sequence classification."""
@@ -580,7 +584,8 @@ def create_model(bert_config, is_training, input_ids, input_mask, segment_ids,
       input_ids=input_ids,
       input_mask=input_mask,
       token_type_ids=segment_ids,
-      use_one_hot_embeddings=use_one_hot_embeddings)
+      use_one_hot_embeddings=use_one_hot_embeddings,
+      compute_type=tf.float16 if FLAGS.use_fp16 else tf.float32)
 
   # In the demo, we are doing a simple classification task on the entire
   # segment.
@@ -672,7 +677,8 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
     if mode == tf.estimator.ModeKeys.TRAIN:
 
       train_op = optimization.create_optimizer(
-          total_loss, learning_rate, num_train_steps, num_warmup_steps, use_tpu)
+          total_loss, learning_rate, num_train_steps, num_warmup_steps, use_tpu,
+          None, FLAGS.use_fp16)
 
       output_spec = tf.contrib.tpu.TPUEstimatorSpec(
           mode=mode,
@@ -824,11 +830,15 @@ def main(_):
     tpu_cluster_resolver = tf.contrib.cluster_resolver.TPUClusterResolver(
         FLAGS.tpu_name, zone=FLAGS.tpu_zone, project=FLAGS.gcp_project)
 
+  config = tf.ConfigProto()
+  if FLAGS.use_xla: 
+    config.graph_options.optimizer_options.global_jit_level = tf.OptimizerOptions.ON_1
   is_per_host = tf.contrib.tpu.InputPipelineConfig.PER_HOST_V2
   run_config = tf.contrib.tpu.RunConfig(
       cluster=tpu_cluster_resolver,
       master=FLAGS.master,
       model_dir=FLAGS.output_dir,
+      session_config=config,
       save_checkpoints_steps=FLAGS.save_checkpoints_steps,
       tpu_config=tf.contrib.tpu.TPUConfig(
           iterations_per_loop=FLAGS.iterations_per_loop,
