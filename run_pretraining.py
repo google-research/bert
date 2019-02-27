@@ -155,14 +155,14 @@ class _LogSessionRunHook(tf.train.SessionRunHook):
             print('%2d :: %6i %11.1f %10.4e %10.4e %6.3f     %6.4e  %6.4e' %
                   (self.hvd_rank, print_step, img_per_sec, mlm_loss, nsp_loss, total_loss, lr, loss_scaler))
           else:
-            print('%2d :: %6i %11.1f %10.4e %10.4e %6.3f     %6.4e  %6.4e' %
-                  (self.hvd_rank, print_step, img_per_sec, mlm_loss, nsp_loss, total_loss, lr, loss_scaler))
+            print('%2d :: %6i %11.1f %10.4e %10.4e %6.3f     %6.4e' %
+                  (self.hvd_rank, print_step, img_per_sec, mlm_loss, nsp_loss, total_loss, lr))
         else:
           if FLAGS.use_fp16:
             print('%6i %11.1f %10.4e %10.4e %6.3f     %6.4e  %6.4e' %
                   (print_step, img_per_sec, mlm_loss, nsp_loss, total_loss, lr, loss_scaler))
           else:
-            print('%6i %11.1f %10.4e %10.4e %6.3f     %6.4e  %6.4e' %
+            print('%6i %11.1f %10.4e %10.4e %6.3f     %6.4e' %
                   (print_step, img_per_sec, mlm_loss, nsp_loss, total_loss, lr))
         self.elapsed_secs = 0.
         self.count = 0
@@ -503,7 +503,6 @@ def main(_):
     config.gpu_options.visible_device_list = str(hvd.local_rank())
   if FLAGS.use_xla: 
     config.graph_options.optimizer_options.global_jit_level = tf.OptimizerOptions.ON_1
-    config.gpu_options.allow_growth = True
   is_per_host = tf.contrib.tpu.InputPipelineConfig.PER_HOST_V2
   run_config = tf.contrib.tpu.RunConfig(
       cluster=tpu_cluster_resolver,
