@@ -903,9 +903,14 @@ def write_predictions(all_examples, all_features, all_results, n_best_size,
       all_predictions[example.qas_id] = nbest_json[0]["text"]
     else:
       # predict "" iff the null score - the score of best non-null > threshold
-      score_diff = score_null - best_non_null_entry.start_logit - (
-          best_non_null_entry.end_logit)
-      scores_diff_json[example.qas_id] = score_diff
+      if best_non_null_entry:
+        score_diff = score_null - best_non_null_entry.start_logit - (
+            best_non_null_entry.end_logit)
+        scores_diff_json[example.qas_id] = score_diff
+      else:
+        # all n best entries are null, we assign a higher diff than threshold
+        score_diff = FLAGS.null_score_diff_threshold + 1.0
+
       if score_diff > FLAGS.null_score_diff_threshold:
         all_predictions[example.qas_id] = ""
       else:
