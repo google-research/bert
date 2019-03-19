@@ -1,4 +1,9 @@
 # BERT
+**\*\*\*\*\* New March 19th, 2019: Realize ERNIE \*\*\*\*\***
+
+Use create_ernie_pretraining_data.py realize ERNIE.
+近期百度开源的ERNIE在多种中文文本任务中表现出色，相较于 BERT 随机[MASK]或替换字符，ERNIE 直接对词进行随机[MASK]或替换，增强了模型中文实体含义的表示能力。其实我们可以看出ERNIE与BERT非常相似，区别主要是在pretrain中选择[MASK]字符的逻辑。
+在此提供create_ernie_pretraining_data.py生成ERNIE的预训练数据，方便在Tensorflow中使用。
 
 **\*\*\*\*\* New February 7th, 2019: TfHub Module \*\*\*\*\***
 
