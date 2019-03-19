@@ -121,6 +121,11 @@ flags.DEFINE_integer(
     "num_tpu_cores", 8,
     "Only used if `use_tpu` is True. Total number of TPU cores to use.")
 
+flags.DEFINE_bool(
+    "use_sigmoid_act", True,
+    "Whether to use sigmoid activation function for regression. "
+    "If you want to the output value between 0 and 1, then you probably"
+    " need set it to True")
 
 class InputExample(object):
   """A single training/test example for simple sequence classification."""
@@ -436,7 +441,12 @@ def create_model(bert_config, is_training, input_ids, input_mask, segment_ids,
 
     logits = tf.matmul(output_layer, output_weights, transpose_b=True)
     logits = tf.nn.bias_add(logits, output_bias)
-    output = tf.nn.sigmoid(logits)
+
+    if FLAGS.use_sigmoid_act:
+      output = tf.nn.sigmoid(logits)
+    else:
+      output = logits
+
     output = tf.squeeze(output, [1])
     loss = tf.losses.mean_squared_error(vals, output)
 
