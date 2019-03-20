@@ -390,7 +390,7 @@ def create_masked_lm_predictions(tokens, masked_lm_prob,
   masked_lm = collections.namedtuple("masked_lm", ["index", "label"])  # pylint: disable=invalid-name
 
   num_to_predict = min(max_predictions_per_seq,
-                       max(1, int(round(len(tokens) * masked_lm_prob))))
+                       max(1, int(round(len(cand_indexes) * masked_lm_prob))))
 
   masked_lms = []
   covered_indexes = set()
