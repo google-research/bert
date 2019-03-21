@@ -326,13 +326,14 @@ class BasicTokenizer(object):
     output = []
     token_length = len(token)
     for i in range(token_length):
-      if self._is_korean_char(ord(token[i])):
+      cp = ord(token[i])
+      if self._is_korean_char(cp):
         end += 1
       else:
         if start != end:
           output.append(unicodedata.normalize('NFC', token[start:end]))
-        end += 1
         start = end
+        end += 1
       if i == token_length - 1:
         output.append(unicodedata.normalize('NFC', token[start:end]))
     return ''.join(output)
