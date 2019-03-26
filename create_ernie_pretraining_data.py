@@ -390,7 +390,7 @@ def create_masked_lm_predictions(tokens, masked_lm_prob,
   masked_lm = collections.namedtuple("masked_lm", ["index", "label"])  # pylint: disable=invalid-name
 
   num_to_predict = min(max_predictions_per_seq,
-                       max(1, int(round(len(cand_indexes) * masked_lm_prob))))
+                       max(1, int(round(len(tokens) * masked_lm_prob))))
 
   masked_lms = []
   covered_indexes = set()
@@ -400,23 +400,28 @@ def create_masked_lm_predictions(tokens, masked_lm_prob,
     if str(word_indexes) in covered_indexes:
       continue
     covered_indexes.add(str(word_indexes))
-
+    
     # 80% of the time, replace with [MASK]
     if len(word_indexes) > 1:
       if rng.random() < 0.8:
         for index in word_indexes:
+          if len(masked_lms) >= num_to_predict:
+            break
           output_tokens[index] = "[MASK]"
+          masked_lms.append(masked_lm(index=index, label=tokens[index]))
       else:
         # 10% of the time, keep original
         if rng.random() < 0.5:
           for index in word_indexes:
+            if len(masked_lms) >= num_to_predict:
+              break
             output_tokens[index] = tokens[index]
+            masked_lms.append(masked_lm(index=index, label=tokens[index]))
         # 10% of the time, replace with random word
         else:
           for index in word_indexes:
             output_tokens[index] = vocab_words[rng.randint(0, len(vocab_words) - 1)]
-
-      masked_lms.append(masked_lm(index=index, label=tokens[index]))
+            masked_lms.append(masked_lm(index=index, label=tokens[index]))
 
   masked_lms = sorted(masked_lms, key=lambda x: x.index)
 
