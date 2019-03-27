@@ -1,3 +1,18 @@
+ERNIE与BERT非常相似，区别主要是在pretrain中选择[MASK]字符的逻辑。因此我们可以通过改造BERT的 create_pretraining_data.py 实现ERNIE的逻辑。
+
+通过jieba分词，以词为单位随机选择预测字符，生成预测字符的概率沿用BERT（百度开源的ERNIE设定与BERT是一致的）。随机替换时把每个字符随机替换为一个随机字符，因此被随机替换掉的部分并不是一个正常的中文词汇。
+
+依赖：
+https://github.com/fxsjy/jieba
+https://github.com/tqdm/tqdm
+
+用法：
+
+python create_ernie_pretraining_data.py \
+    --input_file='original_data.txt' \
+    --output_file='./pretrain.tf_record' \
+    --vocab_file='BERT_DATA/vocab.txt'
+
 # BERT
 **\*\*\*\*\* New March 19th, 2019: Realize ERNIE \*\*\*\*\***
 
