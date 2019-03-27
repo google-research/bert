@@ -395,33 +395,30 @@ def create_masked_lm_predictions(tokens, masked_lm_prob,
   masked_lms = []
   covered_indexes = set()
   for word_indexes in cand_indexes:
-    if len(masked_lms) >= num_to_predict:
-      break
     if str(word_indexes) in covered_indexes:
       continue
     covered_indexes.add(str(word_indexes))
-    
-    # 80% of the time, replace with [MASK]
-    if len(word_indexes) > 1:
-      if rng.random() < 0.8:
-        for index in word_indexes:
-          if len(masked_lms) >= num_to_predict:
-            break
-          output_tokens[index] = "[MASK]"
-          masked_lms.append(masked_lm(index=index, label=tokens[index]))
+
+    random1 = rng.random()
+    random2 = rng.random()
+    for index in word_indexes:
+      if len(masked_lms) >= num_to_predict:
+        break
+      masked_token = None
+      # 80% of the time, replace with [MASK]
+      if random1 < 0.8:
+        masked_token = "[MASK]"
       else:
         # 10% of the time, keep original
-        if rng.random() < 0.5:
-          for index in word_indexes:
-            if len(masked_lms) >= num_to_predict:
-              break
-            output_tokens[index] = tokens[index]
-            masked_lms.append(masked_lm(index=index, label=tokens[index]))
+        if random2 < 0.5:
+          masked_token = tokens[index]
         # 10% of the time, replace with random word
         else:
-          for index in word_indexes:
-            output_tokens[index] = vocab_words[rng.randint(0, len(vocab_words) - 1)]
-            masked_lms.append(masked_lm(index=index, label=tokens[index]))
+          masked_token = vocab_words[rng.randint(0, len(vocab_words) - 1)]
+
+      output_tokens[index] = masked_token
+
+      masked_lms.append(masked_lm(index=index, label=tokens[index]))
 
   masked_lms = sorted(masked_lms, key=lambda x: x.index)
 
