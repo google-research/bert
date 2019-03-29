@@ -951,7 +951,7 @@ repository.
 
 #### For which languages have models been released?
 
-Initial models were English-only.  We have since released models for languages with a sufficiently large corpus, as well as multilingual models.
+We have released models for English and Chinese, as well as multilingual models.  We plan to release models for more languages with a sufficiently large corpus.
 
 #### Will models larger than `BERT-Large` be released?
 
