@@ -172,8 +172,7 @@ update steps), and that's BERT.
 Using BERT has two stages: *Pre-training* and *fine-tuning*.
 
 **Pre-training** is fairly expensive (four days on 4 to 16 Cloud TPUs), but is a
-one-time procedure for each language (current models are English-only, but
-multilingual models will be released in the near future). We are releasing a
+one-time procedure for each language (or each multilingual model). We are releasing a
 number of pre-trained models from the paper which were pre-trained at Google.
 Most NLP researchers will never need to pre-train their own model from scratch.
 
