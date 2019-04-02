@@ -453,24 +453,25 @@ def convert_examples_to_features(examples, tokenizer, max_seq_length,
           tf.logging.info(
               "answer: %s" % (tokenization.printable_text(answer_text)))
 
-      feature = InputFeatures(
-          unique_id=unique_id,
-          example_index=example_index,
-          doc_span_index=doc_span_index,
-          tokens=tokens,
-          token_to_orig_map=token_to_orig_map,
-          token_is_max_context=token_is_max_context,
-          input_ids=input_ids,
-          input_mask=input_mask,
-          segment_ids=segment_ids,
-          start_position=start_position,
-          end_position=end_position,
-          is_impossible=example.is_impossible)
+      if not start_position == end_position == 0:
+        feature = InputFeatures(
+            unique_id=unique_id,
+            example_index=example_index,
+            doc_span_index=doc_span_index,
+            tokens=tokens,
+            token_to_orig_map=token_to_orig_map,
+            token_is_max_context=token_is_max_context,
+            input_ids=input_ids,
+            input_mask=input_mask,
+            segment_ids=segment_ids,
+            start_position=start_position,
+            end_position=end_position,
+            is_impossible=example.is_impossible)
 
-      # Run callback
-      output_fn(feature)
+        # Run callback
+        output_fn(feature)
 
-      unique_id += 1
+        unique_id += 1
 
 
 def _improve_answer_span(doc_tokens, input_start, input_end, tokenizer,
