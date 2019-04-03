@@ -353,13 +353,9 @@ def create_masked_lm_predictions(tokens, masked_lm_prob,
                        max(1, int(round(len(tokens) * masked_lm_prob))))
 
   masked_lms = []
-  covered_indexes = set()
   for index in cand_indexes:
     if len(masked_lms) >= num_to_predict:
       break
-    if index in covered_indexes:
-      continue
-    covered_indexes.add(index)
 
     masked_token = None
     # 80% of the time, replace with [MASK]
