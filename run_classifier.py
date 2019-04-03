@@ -154,7 +154,7 @@ class PaddingInputExample(object):
   the entire output data won't be generated.
 
   We use this class instead of `None` because treating `None` as padding
-  battches could cause silent errors.
+  batches could cause silent errors.
   """
 
 
