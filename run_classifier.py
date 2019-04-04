@@ -321,18 +321,19 @@ class ModelFrontProcessor(DataProcessor):
   def _create_examples(self, lines, set_type):
     """Creates examples for the training, test and dev sets."""
     """0\tHello world!\tHola mundo!"""
+    """`${labels}\t${sl}\t${original}\t${tl}\t${translation}`;"""
     """0 for good translations, 1 for bad."""
     examples = []
     for (i, line) in enumerate(lines):
       if i == 0:
         continue
       guid = "%s-%s" % (set_type, i)
-      text_a = tokenization.convert_to_unicode(' '.join(self.tokenizer.tokenize(line[1])))
-      text_b = tokenization.convert_to_unicode(' '.join(self.tokenizer.tokenize(line[2])))
+      text_a = tokenization.convert_to_unicode(' '.join(self.tokenizer.tokenize(line[2])))
+      text_b = tokenization.convert_to_unicode(' '.join(self.tokenizer.tokenize(line[4])))
       if set_type == "test":
         label = "0"
       else:
-        label = tokenization.convert_to_unicode(line[0])
+        label = tokenization.convert_to_unicode(len(line[0].strip()))
       examples.append(
           InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
     return examples
