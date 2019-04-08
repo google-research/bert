@@ -3,7 +3,7 @@
 BERT needs to maintain permanent compatibility with the pre-trained model files,
 so we do not plan to make any major changes to this library (other than what was
 promised in the README). However, we can accept small patches related to
-re-factoring and documentation. To submit contributes, there are just a few
+re-factoring and documentation. To submit contributions, there are just a few
 small guidelines you need to follow.
 
 ## Contributor License Agreement
