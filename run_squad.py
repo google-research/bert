@@ -1130,6 +1130,7 @@ def validate_flags_or_throw(bert_config):
 
 
 def main(_):
+  # Horovod: initialize Horovod if using multiple GPUs.
   if FLAGS.use_multi_gpu:
     hvd.init()
     FLAGS.output_dir = FLAGS.output_dir if hvd.rank() == 0 else os.path.join(FLAGS.output_dir, str(hvd.rank()))
@@ -1153,6 +1154,7 @@ def main(_):
   is_per_host = tf.contrib.tpu.InputPipelineConfig.PER_HOST_V2
 
   if FLAGS.use_multi_gpu:
+    # Horovod: pin GPU to be used to process local rank (one GPU per process)
     config = tf.ConfigProto()
     config.gpu_options.visible_device_list = str(hvd.local_rank())
     run_config = tf.contrib.tpu.RunConfig(
@@ -1191,6 +1193,8 @@ def main(_):
     # buffer in in the `input_fn`.
     rng = random.Random(12345)
     rng.shuffle(train_examples)
+
+    # Horovod: adjust number of steps based on number of GPUs.
     if FLAGS.use_multi_gpu:
       num_train_steps = num_train_steps // hvd.size()
       num_warmup_steps = num_warmup_steps // hvd.size()
@@ -1242,6 +1246,12 @@ def main(_):
         seq_length=FLAGS.max_seq_length,
         is_training=True,
         drop_remainder=True)
+
+    # Horovod: In the case of multi GPU training with Horovod, adding
+    # hvd.BroadcastGlobalVariablesHook(0) hook, broadcasts the initial variable
+    # states from rank 0 to all other processes. This is necessary to ensure
+    # consistent initialization of all workers when training is started with
+    # random weights or restored from a checkpoint.
     if FLAGS.use_multi_gpu:
         hooks = [hvd.BroadcastGlobalVariablesHook(0)]
     else:
