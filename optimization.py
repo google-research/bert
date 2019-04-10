@@ -56,6 +56,10 @@ def create_optimizer(loss, init_lr, num_train_steps, num_warmup_steps, use_tpu,
     learning_rate = (
         (1.0 - is_warmup) * learning_rate + is_warmup * warmup_learning_rate)
 
+    # Horovod: scale learning rate by the number of GPUs.
+    if use_multi_gpu:
+        learning_rate = learning_rate * hvd.size()
+
   # It is recommended that you use this optimizer for fine tuning, since this
   # is how the model was trained (note that the Adam m/v variables are NOT
   # loaded from init_checkpoint.)
