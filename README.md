@@ -2,7 +2,7 @@
 
 **\*\*\*\*\* New February 7th, 2019: TfHub Module \*\*\*\*\***
 
-BERT has been uploaded to [TensorFlow Hub](https://tfhub.dev). See
+BERT has been uploaded to [TensorFlow Hub](https://tfhub.dev), with the uncased version [here](https://tfhub.dev/google/bert_uncased_L-12_H-768_A-12/1) and the multicased version [here](https://tfhub.dev/google/bert_multi_cased_L-12_H-768_A-12/1). See
 `run_classifier_with_tfhub.py` for an example of how to use the TF Hub module, 
 or run an example in the browser on [Colab](https://colab.sandbox.google.com/github/google-research/bert/blob/master/predicting_movie_reviews_with_bert_on_tf_hub.ipynb).
 
