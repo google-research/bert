@@ -627,7 +627,7 @@ following example.
 
 The following example will run BERT on a single machine with 4 GPUs.
 ```shell
-horovodrun -np 4 localhost:4 \
+horovodrun -np 4 -H localhost:4 \
     python run_classifier.py \
         --task_name=MRPC \
         --do_train=true \
@@ -649,7 +649,7 @@ You can train your model on multiple machines as well. For instance, this
 command will train the model on 4 workers where each worker has 4 GPUs, 16 GPUs 
 in total. 
 ```shell
-horovodrun -np 16 host-1:4,host-2:4,host-3:4,host-4:4 \
+horovodrun -np 16 -H host-1:4,host-2:4,host-3:4,host-4:4 \
     python run_classifier.py \
         --task_name=MRPC \
         --do_train=true \
