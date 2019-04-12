@@ -872,7 +872,7 @@ def main(_):
     num_warmup_steps = int(num_train_steps * FLAGS.warmup_proportion)
 
     # Horovod: adjust number of steps based on number of GPUs.
-    if FLAGS.use_mult_gpu:
+    if FLAGS.use_multi_gpu:
       num_warmup_steps = num_warmup_steps // hvd.size()
       num_train_steps = num_train_steps // hvd.size()
 
