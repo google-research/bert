@@ -378,7 +378,7 @@ def _is_control(char):
   if char == "\t" or char == "\n" or char == "\r":
     return False
   cat = unicodedata.category(char)
-  if cat in ("Cc", "Cf"):
+  if cat.startswith("C"):
     return True
   return False
 
