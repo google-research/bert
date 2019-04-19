@@ -72,7 +72,9 @@ def create_optimizer(loss, init_lr, num_train_steps, num_warmup_steps, use_tpu,
       exclude_from_weight_decay=["LayerNorm", "layer_norm", "bias"])
 
   if use_multi_gpu:
-    optimizer = hvd.DistributedOptimizer(optimizer)
+    optimizer = hvd.DistributedOptimizer(optimizer,
+                                         compression=hvd.Compression.fp16,
+                                         sparse_as_dense=True)
 
   if use_tpu:
     optimizer = tf.contrib.tpu.CrossShardOptimizer(optimizer)
