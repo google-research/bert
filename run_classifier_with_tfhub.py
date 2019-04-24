@@ -164,8 +164,8 @@ def main(_):
       "mrpc": run_classifier.MrpcProcessor,
   }
 
-  if not FLAGS.do_train and not FLAGS.do_eval:
-    raise ValueError("At least one of `do_train` or `do_eval` must be True.")
+  if not FLAGS.do_train and not FLAGS.do_eval and not FLAGS.do_predict:
+    raise ValueError("`do_train`, `do_eval`, or `do_predict` must be True.")
 
   tf.gfile.MakeDirs(FLAGS.output_dir)
 
