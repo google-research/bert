@@ -1,10 +1,56 @@
 # BERT
 
+**\*\*\*\*\* New May 31st, 2019: Whole Word Masking Models \*\*\*\*\***
+
+This is a release of several new models which were the result of an improvement
+the pre-processing code.
+
+In the original pre-processing code, we randomly select WordPiece tokens to
+mask. For example:
+
+`Input Text: the man jumped up , put his basket on phil ##am ##mon ' s head`
+`Original Masked Input: [MASK] man [MASK] up , put his [MASK] on phil
+[MASK] ##mon ' s head`
+
+The new technique is called Whole Word Masking. In this case, we always mask
+*all* of the the tokens corresponding to a word at once. The overall masking
+rate remains the same.
+
+`Whole Word Masked Input: the man [MASK] up , put his basket on [MASK] [MASK]
+[MASK] ' s head`
+
+The training is identical -- we still predict each masked WordPiece token
+independently. The improvement comes from the fact that the original prediction
+task was too 'easy' for words that had been split into multiple WordPieces.
+
+This can be enabled during data generation by passing the flag
+`--do_whole_word_mask=True` to `create_pretraining_data.py`.
+
+Pre-trained models with Whole Word Masking are linked below. The data and
+training were otherwise identical, and the models have identical structure and
+vocab to the original models. We only include BERT-Large models. When using
+these models, please make it clear in the paper that you are using the Whole
+Word Masking variant of BERT-Large.
+
+*   **[`BERT-Large, Uncased (Whole Word Masking)`](https://storage.googleapis.com/bert_models/2019_05_30/wwm_uncased_L-24_H-1024_A-16.zip)**:
+    24-layer, 1024-hidden, 16-heads, 340M parameters
+
+*   **[`BERT-Large, Cased (Whole Word Masking)`](https://storage.googleapis.com/bert_models/2019_05_30/wwm_cased_L-24_H-1024_A-16.zip)**:
+    24-layer, 1024-hidden, 16-heads, 340M parameters
+
+Model                                    | SQUAD 1.1 F1/EM | Multi NLI Accuracy
+---------------------------------------- | :-------------: | :----------------:
+BERT-Large, Uncased (Original)           | 91.0/84.3       | 86.05
+BERT-Large, Uncased (Whole Word Masking) | 92.8/86.7       | 87.07
+BERT-Large, Cased (Original)             | 91.5/84.8       | 86.09
+BERT-Large, Cased (Whole Word Masking)   | 92.9/86.7       | 86.46
+
 **\*\*\*\*\* New February 7th, 2019: TfHub Module \*\*\*\*\***
 
 BERT has been uploaded to [TensorFlow Hub](https://tfhub.dev). See
-`run_classifier_with_tfhub.py` for an example of how to use the TF Hub module, 
-or run an example in the browser on [Colab](https://colab.sandbox.google.com/github/google-research/bert/blob/master/predicting_movie_reviews_with_bert_on_tf_hub.ipynb).
+`run_classifier_with_tfhub.py` for an example of how to use the TF Hub module,
+or run an example in the browser on
+[Colab](https://colab.sandbox.google.com/github/google-research/bert/blob/master/predicting_movie_reviews_with_bert_on_tf_hub.ipynb).
 
 **\*\*\*\*\* New November 23rd, 2018: Un-normalized multilingual model + Thai +
 Mongolian \*\*\*\*\***
@@ -225,6 +271,10 @@ using your own script.)**
 
 The links to the models are here (right-click, 'Save link as...' on the name):
 
+*   **[`BERT-Large, Uncased (Whole Word Masking)`](https://storage.googleapis.com/bert_models/2019_05_30/wwm_uncased_L-24_H-1024_A-16.zip)**:
+    24-layer, 1024-hidden, 16-heads, 340M parameters
+*   **[`BERT-Large, Cased (Whole Word Masking)`](https://storage.googleapis.com/bert_models/2019_05_30/wwm_cased_L-24_H-1024_A-16.zip)**:
+    24-layer, 1024-hidden, 16-heads, 340M parameters
 *   **[`BERT-Base, Uncased`](https://storage.googleapis.com/bert_models/2018_10_18/uncased_L-12_H-768_A-12.zip)**:
     12-layer, 768-hidden, 12-heads, 110M parameters
 *   **[`BERT-Large, Uncased`](https://storage.googleapis.com/bert_models/2018_10_18/uncased_L-24_H-1024_A-16.zip)**:
