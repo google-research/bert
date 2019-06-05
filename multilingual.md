@@ -55,7 +55,7 @@ machine-translated data, so it is impossible to quantify how much of the lower
 accuracy (compared to English) is due to the quality of the machine translation
 vs. the quality of the pre-trained model.
 
-**Translate Test** means that the XNLI test set was machine translated from the
+**Translate Test** means that the XNLI test set was machine-translated from the
 foreign language into English. So training and evaluation were both done on
 English. However, test evaluation was done on machine-translated English, so the
 accuracy depends on the quality of the machine translation system.
@@ -65,7 +65,7 @@ MultiNLI, and then evaluated on the foreign language XNLI test. In this case,
 machine translation was not involved at all in either the pre-training or
 fine-tuning.
 
-Note that the English result is worse than the 84.2 MultiNLI baseline because
+Note that the English result is worse than the 84.2 MultiNLI baselines because
 this training used Multilingual BERT rather than English-only BERT. This implies
 that for high-resource languages, the Multilingual model is somewhat worse than
 a single-language model. However, it is not feasible for us to train and
@@ -95,7 +95,7 @@ you forked it. However, we did not change the tokenization API.
 
 To test the new models, we did modify `run_classifier.py` to add support for the
 [XNLI dataset](https://github.com/facebookresearch/XNLI). This is a 15-language
-version of MultiNLI where the dev/test sets have been human-translated, and the
+the version of MultiNLI where the dev/test sets have been human-translated and the
 training set has been machine-translated.
 
 To run the fine-tuning code, please download the
@@ -149,13 +149,13 @@ The languages chosen were the
 The entire Wikipedia dump for each language (excluding user and talk pages) was
 taken as the training data for each language
 
-However, the size of the Wikipedia for a given language varies greatly, and
+However, the size of Wikipedia for a given language varies greatly, and
 therefore low-resource languages may be "under-represented" in terms of the
 neural network model (under the assumption that languages are "competing" for
 limited model capacity to some extent).
 
 However, the size of a Wikipedia also correlates with the number of speakers of
-a language, and we also don't want to overfit the model by performing thousands
+a language and we also don't want to overfit the model by performing thousands
 of epochs over a tiny Wikipedia for a particular language.
 
 To balance these two factors, we performed exponentially smoothed weighting of
@@ -163,8 +163,7 @@ the data during pre-training data creation (and WordPiece vocab creation). In
 other words, let's say that the probability of a language is *P(L)*, e.g.,
 *P(English) = 0.21* means that after concatenating all of the Wikipedias
 together, 21% of our data is English. We exponentiate each probability by some
-factor *S* and then re-normalize, and sample from that distribution. In our case
-we use *S=0.7*. So, high-resource languages like English will be under-sampled,
+factor *S* and then re-normalize, and sample from that distribution. In our case, we use *S=0.7*. So, high-resource languages like English will be under-sampled,
 and low-resource languages like Icelandic will be over-sampled. E.g., in the
 original distribution English would be sampled 1000x more than Icelandic, but
 after smoothing it's only sampled 100x more.
@@ -172,7 +171,7 @@ after smoothing it's only sampled 100x more.
 ### Tokenization
 
 For tokenization, we use a 110k shared WordPiece vocabulary. The word counts are
-weighted the same way as the data, so low-resource languages are upweighted by
+weighted the same way as the data, so low-resource languages are up-weighted by
 some factor. We intentionally do *not* use any marker to denote the input
 language (so that zero-shot training can work).
 
@@ -190,7 +189,7 @@ For all other languages, we apply the
 (a) lower casing+accent removal, (b) punctuation splitting, (c) whitespace
 tokenization. We understand that accent markers have substantial meaning in some
 languages, but felt that the benefits of reducing the effective vocabulary make
-up for this. Generally the strong contextual models of BERT should make up for
+up for this. Generally, the strong contextual models of BERT should make up for
 any ambiguity introduced by stripping accent markers.
 
 ### List of Languages
