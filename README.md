@@ -2,7 +2,7 @@
 
 **\*\*\*\*\* New May 31st, 2019: Whole Word Masking Models \*\*\*\*\***
 
-This is a release of several new models which were the result of an improvement
+This is a release of several new models which were the result of an improvement in
 the pre-processing code.
 
 In the original pre-processing code, we randomly select WordPiece tokens to
@@ -57,7 +57,7 @@ Mongolian \*\*\*\*\***
 
 We uploaded a new multilingual model which does *not* perform any normalization
 on the input (no lower casing, accent stripping, or Unicode normalization), and
-additionally inclues Thai and Mongolian.
+additionally includes Thai and Mongolian.
 
 **It is recommended to use this version for developing multilingual models,
 especially on languages with non-Latin alphabets.**
@@ -303,7 +303,7 @@ Each .zip file contains three items:
 ## Fine-tuning with BERT
 
 **Important**: All results on the paper were fine-tuned on a single Cloud TPU,
-which has 64GB of RAM. It is currently not possible to re-produce most of the
+which has 64GB of RAM. It is currently not possible to reproduce most of the
 `BERT-Large` results on the paper using a GPU with 12GB - 16GB of RAM, because
 the maximum batch size that can fit in memory is too small. We are working on
 adding code to this repository which allows for much larger effective batch size
@@ -335,7 +335,7 @@ Please see the
 for how to use Cloud TPUs. Alternatively, you can use the Google Colab notebook
 "[BERT FineTuning with Cloud TPUs](https://colab.research.google.com/github/tensorflow/tpu/blob/master/tools/colab/bert_finetuning_with_cloud_tpus.ipynb)".
 
-On Cloud TPUs, the pretrained model and the output directory will need to be on
+On Cloud TPUs, the pre-trained model and the output directory will need to be on
 Google Cloud Storage. For example, if you have a bucket named `some_bucket`, you
 might use the following flags instead:
 
