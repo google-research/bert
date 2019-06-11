@@ -200,13 +200,13 @@ def extract_features(text):
     if sentence_embedding:
         output_embeddings = model.get_pooled_output()
     else:
-        output_embeddings = model.get_pooled_output()
+        output_embeddings = model.get_sequence_output()
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
         result = sess.run(output_embeddings)
         return (result)
       
 if __name__ == "__main__":
-    text = "ether is a collaborative service for machine learning"
+    text = "etherlabs is a collaborative service for machine learning"
     sent_emb = extract_features(text)
     print (sent_emb[0])
