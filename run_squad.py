@@ -349,7 +349,7 @@ def convert_examples_to_features(examples, tokenizer, max_seq_length,
 
     # We can have documents that are longer than the maximum sequence length.
     # To deal with this we do a sliding window approach, where we take chunks
-    # of the up to our max length with a stride of `doc_stride`.
+    # of the document up to our max length with a stride of `doc_stride`.
     _DocSpan = collections.namedtuple(  # pylint: disable=invalid-name
         "DocSpan", ["start", "length"])
     doc_spans = []
