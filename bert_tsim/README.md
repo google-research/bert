@@ -18,7 +18,7 @@
 ```
 from bert.extrac_feature import BertVector
 bv = BertVector()
-bv.encode(['今天天气不错'])
+bv.encode(['毛主席发奖金'])
 ```
 
 4、文本分类
