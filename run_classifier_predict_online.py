@@ -1,4 +1,3 @@
-# coding=utf-8
 # Copyright 2018 The Google AI Language Team Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,14 +17,14 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import collections
 import csv
 import os
-import modeling
-import optimization
-import tokenization
-import tensorflow as tf
+
 import numpy as np
+import tensorflow as tf
+
+import modeling
+import tokenization
 
 flags = tf.flags
 
