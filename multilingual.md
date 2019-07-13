@@ -154,8 +154,7 @@ therefore low-resource languages may be "under-represented" in terms of the
 neural network model (under the assumption that languages are "competing" for
 limited model capacity to some extent).
 
-However, the size of a Wikipedia also correlates with the number of speakers of
-a language, and we also don't want to overfit the model by performing thousands
+However, we also don't want to overfit the model by performing thousands
 of epochs over a tiny Wikipedia for a particular language.
 
 To balance these two factors, we performed exponentially smoothed weighting of
