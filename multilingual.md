@@ -69,7 +69,7 @@ Note that the English result is worse than the 84.2 MultiNLI baseline because
 this training used Multilingual BERT rather than English-only BERT. This implies
 that for high-resource languages, the Multilingual model is somewhat worse than
 a single-language model. However, it is not feasible for us to train and
-maintain dozens of single-language model. Therefore, if your goal is to maximize
+maintain dozens of single-language models. Therefore, if your goal is to maximize
 performance with a language other than English or Chinese, you might find it
 beneficial to run pre-training for additional steps starting from our
 Multilingual model on data from your language of interest.
@@ -152,11 +152,9 @@ taken as the training data for each language
 However, the size of the Wikipedia for a given language varies greatly, and
 therefore low-resource languages may be "under-represented" in terms of the
 neural network model (under the assumption that languages are "competing" for
-limited model capacity to some extent).
-
-However, the size of a Wikipedia also correlates with the number of speakers of
-a language, and we also don't want to overfit the model by performing thousands
-of epochs over a tiny Wikipedia for a particular language.
+limited model capacity to some extent). At the same time, we also don't want
+to overfit the model by performing thousands of epochs over a tiny Wikipedia
+for a particular language.
 
 To balance these two factors, we performed exponentially smoothed weighting of
 the data during pre-training data creation (and WordPiece vocab creation). In
