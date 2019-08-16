@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+nvidia-docker run -p 8900:8500 -p 8901:8501 -v "/data/nfsdata/home/wuwei/study/bert/export_dir/1/1565879226/:/models/my_model/1" -e MODEL_NAME=my_model -t tensorflow/serving:1.12.0-gpu --enable_batching --batching_parameters_file="models/my_model/1/batchingParameters.proto" --tensorflow_session_parallelism=8
