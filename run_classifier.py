@@ -25,6 +25,7 @@ import modeling
 import optimization
 import tokenization
 import tensorflow as tf
+import pandas as pd
 
 flags = tf.flags
 
@@ -203,6 +204,77 @@ class DataProcessor(object):
         lines.append(line)
       return lines
 
+class MyProcessor(DataProcessor):
+    """Processor for the MRPC data set (GLUE version)."""
+
+    def __init__(self):
+        self.df = self.load_data_from_jdv()
+
+    def load_data_from_jdv(self, file="./data/clean_reviewed_kcs_data.pkl"):
+        jdv_df = pd.read_pickle(file)
+        jdv_df = jdv_df[['label', 'kcs_id', 'title', 'issue', 'resolution']]
+        jdv_df['combined'] = jdv_df.apply(lambda x: ' '.join([x['title'], x['issue'], x['resolution']]),
+                                          axis=1)
+
+        jdv_df = jdv_df.fillna(' ')
+        jdv_df1 = jdv_df[jdv_df['label'] == 1]
+        jdv_df2 = jdv_df[jdv_df['label'] == 0][:700]
+        frames = [jdv_df1, jdv_df2]
+        jdv_df3 = pd.concat(frames)
+
+        self.train = jdv_df3.sample(frac=0.8, random_state=200)
+        self.dev = jdv_df3.drop(self.train.index)
+
+        return jdv_df3
+
+    def get_train_examples(self, data_dir=None):
+        """See base class."""
+        return self._create_examples(self.train, 'train')
+
+    def get_dev_examples(self, data_dir=None):
+        """See base class."""
+        return self._create_examples(self.dev, "dev")
+
+    def get_test_examples(self, data_dir=None):
+        """See base class."""
+
+        data_set = pd.read_pickle('./data/clean_reviewed_kcs_data.pkl')
+        data_set = data_set.fillna(' ')
+        test_df = data_set[['title', 'issue', 'resolution', 'label']]
+        test_df['combined'] = test_df.apply(lambda x: ' '.join([x['title'], x['issue'], x['resolution']]),
+                                            axis=1)
+
+        return self._create_examples(test_df, "test")
+
+    def get_labels(self):
+        """See base class."""
+        return [0, 1]
+
+    def _create_examples(self, df, set_type):
+        """Creates examples for the training and dev sets."""
+
+        df['combined'] = df.apply(lambda x: tokenization.convert_to_unicode(x['combined']))
+
+        examples = df.apply(lambda x: InputExample(guid=x['kcs_id'],
+                                                   # Globally unique ID for bookkeeping, unused in this example
+                                                   text_a=x['combined'],
+                                                   text_b=None,
+                                                   label=x['label']), axis=1)
+
+        # examples = []
+        # for (i, line) in enumerate(lines):
+        #     if i == 0:
+        #         continue
+        #     guid = "%s-%s" % (set_type, i)
+        #     text_a = tokenization.convert_to_unicode(line[3])
+        #     text_b = tokenization.convert_to_unicode(line[4])
+        #     if set_type == "test":
+        #         label = "0"
+        #     else:
+        #         label = tokenization.convert_to_unicode(line[0])
+        #     examples.append(
+        #         InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+        return examples
 
 class XnliProcessor(DataProcessor):
   """Processor for the XNLI data set."""
