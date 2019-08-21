@@ -32,34 +32,39 @@ flags = tf.flags
 
 FLAGS = flags.FLAGS
 
-flags.DEFINE_string("input_file", None, "")
+flags.DEFINE_string("input_file", '/data/nfsdata/home/wuwei/glyce_rebuttal.txt', "")
 
-flags.DEFINE_string("output_file", None, "")
+flags.DEFINE_string("output_file", '/data/nfsdata/home/wuwei/glyce_rebuttal.json', "")
 
-flags.DEFINE_string("layers", "-1,-2,-3,-4", "")
+flags.DEFINE_string("layers", "-1", "")
 
 flags.DEFINE_string(
-    "bert_config_file", None,
+    "bert_config_file", '/data/nfsdata/nlp/BERT_BASE_DIR/uncased_L-12_H-768_A-12/config.json',
     "The config json file corresponding to the pre-trained BERT model. "
     "This specifies the model architecture.")
 
 flags.DEFINE_integer(
-    "max_seq_length", 128,
+    "max_seq_length", 64,
     "The maximum total input sequence length after WordPiece tokenization. "
     "Sequences longer than this will be truncated, and sequences shorter "
     "than this will be padded.")
 
 flags.DEFINE_string(
-    "init_checkpoint", None,
+    "init_checkpoint", '/data/nfsdata/nlp/BERT_BASE_DIR/uncased_L-12_H-768_A-12/bert_model.ckpt',
     "Initial checkpoint (usually from a pre-trained BERT model).")
 
-flags.DEFINE_string("vocab_file", None,
+flags.DEFINE_string("vocab_file", '/data/nfsdata/nlp/BERT_BASE_DIR/uncased_L-12_H-768_A-12/vocab.txt',
                     "The vocabulary file that the BERT model was trained on.")
 
 flags.DEFINE_bool(
     "do_lower_case", True,
     "Whether to lower case the input text. Should be True for uncased "
     "models and False for cased models.")
+
+
+flags.DEFINE_string(
+    "output_dir", '/data/nfsdata/home/wuwei/study/bert/features',
+    "The output directory where the model checkpoints will be written.")
 
 flags.DEFINE_integer("batch_size", 32, "Batch size for predictions.")
 
@@ -85,6 +90,20 @@ class InputExample(object):
         self.unique_id = unique_id
         self.text_a = text_a
         self.text_b = text_b
+
+
+def serving_input_fn():
+    unique_ids = tf.placeholder(tf.int32, [None], name='unique_ids')
+    input_ids = tf.placeholder(tf.int32, [None, FLAGS.max_seq_length], name='input_ids')
+    input_mask = tf.placeholder(tf.int32, [None, FLAGS.max_seq_length], name='input_mask')
+    input_type_ids = tf.placeholder(tf.int32, [None, FLAGS.max_seq_length], name='input_type_ids')
+    input_fn = tf.estimator.export.build_raw_serving_input_receiver_fn({
+        'unique_ids': unique_ids,
+        'input_ids': input_ids,
+        'input_mask': input_mask,
+        'input_type_ids': input_type_ids,
+    })()
+    return input_fn
 
 
 class InputFeatures(object):
@@ -157,7 +176,7 @@ def model_fn_builder(bert_config, init_checkpoint, layer_indexes, use_tpu,
         input_ids = features["input_ids"]
         input_mask = features["input_mask"]
         input_type_ids = features["input_type_ids"]
-
+        unique_ids = tf.identity(unique_ids)
         model = modeling.BertModel(
             config=bert_config,
             is_training=False,
@@ -166,8 +185,8 @@ def model_fn_builder(bert_config, init_checkpoint, layer_indexes, use_tpu,
             token_type_ids=input_type_ids,
             use_one_hot_embeddings=use_one_hot_embeddings)
 
-        if mode != tf.estimator.ModeKeys.PREDICT:
-            raise ValueError("Only PREDICT modes are supported: %s" % (mode))
+        # if mode != tf.estimator.ModeKeys.PREDICT:
+        #     raise ValueError("Only PREDICT modes are supported: %s" % (mode))
 
         tvars = tf.trainable_variables()
         scaffold_fn = None
@@ -192,17 +211,27 @@ def model_fn_builder(bert_config, init_checkpoint, layer_indexes, use_tpu,
             tf.logging.info("  name = %s, shape = %s%s", var.name, var.shape,
                             init_string)
 
-        all_layers = model.get_all_encoder_layers()
+        if mode == tf.estimator.ModeKeys.TRAIN:
+            loss = model.get_pooled_output()[0][0]
+            optimizer = tf.train.AdagradOptimizer(learning_rate=0.0)
+            train_op = optimizer.minimize(loss, global_step=tf.train.get_global_step())
+            output_spec = tf.contrib.tpu.TPUEstimatorSpec(
+                mode=mode,
+                loss=loss,
+                train_op=train_op,
+                scaffold_fn=scaffold_fn)
+        else:
+            all_layers = model.get_all_encoder_layers()
 
-        predictions = {
-            "unique_id": unique_ids,
-        }
+            predictions = {
+                "unique_id": unique_ids,
+            }
 
-        for (i, layer_index) in enumerate(layer_indexes):
-            predictions["layer_output_%d" % i] = all_layers[layer_index]
+            for (i, layer_index) in enumerate(layer_indexes):
+                predictions["layer_output_%d" % i] = all_layers[layer_index]
 
-        output_spec = tf.contrib.tpu.TPUEstimatorSpec(
-            mode=mode, predictions=predictions, scaffold_fn=scaffold_fn)
+            output_spec = tf.contrib.tpu.TPUEstimatorSpec(
+                mode=mode, predictions=predictions, scaffold_fn=scaffold_fn)
         return output_spec
 
     return model_fn
@@ -343,7 +372,7 @@ def read_examples(input_file):
 
 def main(_):
     tf.logging.set_verbosity(tf.logging.INFO)
-
+    tf.gfile.MakeDirs(FLAGS.output_dir)
     layer_indexes = [int(x) for x in FLAGS.layers.split(",")]
 
     bert_config = modeling.BertConfig.from_json_file(FLAGS.bert_config_file)
@@ -354,6 +383,7 @@ def main(_):
     is_per_host = tf.contrib.tpu.InputPipelineConfig.PER_HOST_V2
     run_config = tf.contrib.tpu.RunConfig(
         master=FLAGS.master,
+        model_dir=FLAGS.output_dir,
         tpu_config=tf.contrib.tpu.TPUConfig(
             num_shards=FLAGS.num_tpu_cores,
             per_host_input_for_training=is_per_host))
@@ -380,11 +410,17 @@ def main(_):
         use_tpu=FLAGS.use_tpu,
         model_fn=model_fn,
         config=run_config,
-        predict_batch_size=FLAGS.batch_size)
+        train_batch_size=FLAGS.batch_size,
+        predict_batch_size=FLAGS.batch_size,
+        )
 
     input_fn = input_fn_builder(
         features=features, seq_length=FLAGS.max_seq_length)
-
+    estimator.train(input_fn)
+    # save_hook = tf.train.CheckpointSaverHook(FLAGS.output_dir, save_secs=1)
+    # estimator.predict(input_fn=input_fn, hooks=[save_hook])
+    estimator._export_to_tpu = False
+    estimator.export_savedmodel('export_dir/3', serving_input_fn)
     with codecs.getwriter("utf-8")(tf.gfile.Open(FLAGS.output_file,
                                                  "w")) as writer:
         for result in estimator.predict(input_fn, yield_single_examples=True):
@@ -412,9 +448,9 @@ def main(_):
 
 
 if __name__ == "__main__":
-    flags.mark_flag_as_required("input_file")
-    flags.mark_flag_as_required("vocab_file")
-    flags.mark_flag_as_required("bert_config_file")
-    flags.mark_flag_as_required("init_checkpoint")
-    flags.mark_flag_as_required("output_file")
+    # flags.mark_flag_as_required("input_file")
+    # flags.mark_flag_as_required("vocab_file")
+    # flags.mark_flag_as_required("bert_config_file")
+    # flags.mark_flag_as_required("init_checkpoint")
+    # flags.mark_flag_as_required("output_file")
     tf.app.run()

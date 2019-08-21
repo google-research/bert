@@ -29,14 +29,14 @@ flags = tf.flags
 
 FLAGS = flags.FLAGS
 
-flags.DEFINE_string("input_file", None,
+flags.DEFINE_string("input_file", '/data/nfsdata/home/wuwei/glyce_rebuttal.txt',
                     "Input raw text file (or comma-separated list of files).")
 
 flags.DEFINE_string(
-    "output_file", None,
+    "output_file", '/data/nfsdata/home/wuwei/glyce_rebuttal.tfrecord',
     "Output TF example file (or comma-separated list of files).")
 
-flags.DEFINE_string("vocab_file", None,
+flags.DEFINE_string("vocab_file", '/data/nfsdata/nlp/BERT_BASE_DIR/uncased_L-12_H-768_A-12/vocab.txt',
                     "The vocabulary file that the BERT model was trained on.")
 
 flags.DEFINE_bool(
@@ -465,7 +465,7 @@ def main(_):
 
 
 if __name__ == "__main__":
-    flags.mark_flag_as_required("input_file")
-    flags.mark_flag_as_required("output_file")
-    flags.mark_flag_as_required("vocab_file")
+    # flags.mark_flag_as_required("input_file")
+    # flags.mark_flag_as_required("output_file")
+    # flags.mark_flag_as_required("vocab_file")
     tf.app.run()
