@@ -213,10 +213,9 @@ class MyProcessor(DataProcessor):
     def load_data_from_jdv(self, file="./data/clean_reviewed_kcs_data.pkl"):
         jdv_df = pd.read_pickle(file)
         jdv_df = jdv_df[['label', 'kcs_id', 'title', 'issue', 'resolution']]
+        jdv_df = jdv_df.fillna(' ')
         jdv_df['combined'] = jdv_df.apply(lambda x: ' '.join([x['title'], x['issue'], x['resolution']]),
                                           axis=1)
-
-        jdv_df = jdv_df.fillna(' ')
         jdv_df1 = jdv_df[jdv_df['label'] == 1]
         jdv_df2 = jdv_df[jdv_df['label'] == 0][:700]
         frames = [jdv_df1, jdv_df2]
@@ -253,7 +252,7 @@ class MyProcessor(DataProcessor):
     def _create_examples(self, df, set_type):
         """Creates examples for the training and dev sets."""
 
-        df['combined'] = df.apply(lambda x: tokenization.convert_to_unicode(x['combined']))
+        df['combined'] = df.apply(lambda x: tokenization.convert_to_unicode(x['combined']), axis=1)
 
         examples = df.apply(lambda x: InputExample(guid=x['kcs_id'],
                                                    # Globally unique ID for bookkeeping, unused in this example
@@ -860,6 +859,7 @@ def main(_):
       "mnli": MnliProcessor,
       "mrpc": MrpcProcessor,
       "xnli": XnliProcessor,
+      "kcs_predict": MyProcessor,
   }
 
   tokenization.validate_case_matches_checkpoint(FLAGS.do_lower_case,
