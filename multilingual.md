@@ -99,8 +99,8 @@ version of MultiNLI where the dev/test sets have been human-translated, and the
 training set has been machine-translated.
 
 To run the fine-tuning code, please download the
-[XNLI dev/test set](https://s3.amazonaws.com/xnli/XNLI-1.0.zip) and the
-[XNLI machine-translated training set](https://s3.amazonaws.com/xnli/XNLI-MT-1.0.zip)
+[XNLI dev/test set](https://www.nyu.edu/projects/bowman/xnli/XNLI-1.0.zip) and the
+[XNLI machine-translated training set](https://www.nyu.edu/projects/bowman/xnli/XNLI-MT-1.0.zip)
 and then unpack both .zip files into some directory `$XNLI_DIR`.
 
 To run fine-tuning on XNLI. The language is hard-coded into `run_classifier.py`
