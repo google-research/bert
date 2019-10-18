@@ -231,14 +231,7 @@ def model_fn_builder(bert_config, init_checkpoint, learning_rate,
          masked_lm_positions, masked_lm_ids, 
          masked_lm_weights)
 
-    (next_sentence_loss, next_sentence_example_loss,
-     next_sentence_log_probs) = get_next_sentence_output(
-         bert_config, model.get_pooled_output(), next_sentence_labels)
-
-    masked_lm_loss = tf.identity(masked_lm_loss, name="mlm_loss")
-    next_sentence_loss = tf.identity(next_sentence_loss, name="nsp_loss")
-    total_loss = masked_lm_loss + next_sentence_loss
-    total_loss = tf.identity(total_loss, name='total_loss')
+    total_loss = tf.identity(masked_lm_loss, name="mlm_loss")
 
     tvars = tf.trainable_variables()
 
@@ -365,29 +358,6 @@ def get_masked_lm_output(bert_config, input_tensor, output_weights, positions,
     loss = numerator / denominator
 
   return (loss, per_example_loss, log_probs)
-
-
-def get_next_sentence_output(bert_config, input_tensor, labels):
-  """Get loss and log probs for the next sentence prediction."""
-
-  # Simple binary classification. Note that 0 is "next sentence" and 1 is
-  # "random sentence". This weight matrix is not used after pre-training.
-  with tf.variable_scope("cls/seq_relationship"):
-    output_weights = tf.get_variable(
-        "output_weights",
-        shape=[2, bert_config.hidden_size],
-        initializer=modeling.create_initializer(bert_config.initializer_range))
-    output_bias = tf.get_variable(
-        "output_bias", shape=[2], initializer=tf.zeros_initializer())
-
-    logits = tf.matmul(tf.cast(input_tensor, tf.float32), output_weights, transpose_b=True)
-    logits = tf.nn.bias_add(logits, output_bias)
-    log_probs = tf.nn.log_softmax(logits, axis=-1)
-    labels = tf.reshape(labels, [-1])
-    one_hot_labels = tf.one_hot(labels, depth=2, dtype=tf.float32)
-    per_example_loss = -tf.reduce_sum(one_hot_labels * log_probs, axis=-1)
-    loss = tf.reduce_mean(per_example_loss)
-    return (loss, per_example_loss, log_probs)
 
 
 def gather_indexes(sequence_tensor, positions):
