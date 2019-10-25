@@ -8,6 +8,7 @@ import run_squad
 import json, os
 import tokenization
 import collections
+import argparse
 
 ########## Global Variable #########
 
@@ -348,4 +349,18 @@ class QA_Model(Resource):
 api.add_resource(QA_Model, '/<string:question>')
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model_dir", help="tf serving exported model dir")
+    parser.add_argument("--vocab_path", help="bert vocab path")
+
+    model_dir = args.model_dir
+    vocab_path = args.vocab_path
+
+    if model_dir==None or vocab_path==None:
+        print('Input format error')
+    else:
+        global export_dir, VOCAB_FILE
+        export_dir = model_dir
+        VOCAB_FILE = vocab_path
+
     app.run(port=3131,host='0.0.0.0')
