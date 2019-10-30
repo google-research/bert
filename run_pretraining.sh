@@ -12,4 +12,4 @@ python3 run_pretraining.py \
  --do_lower_case=True \
  --max_seq_length=512 \
  --max_predictions_per_seq=51 \
- --tpu=$TPU_NAME
+ --tpu_name=$TPU_NAME
