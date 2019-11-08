@@ -22,8 +22,17 @@ import collections
 import random
 
 import tensorflow as tf
+from nlpc import bert_tokenizer
 
-import tokenization
+vocab_path = '/data/nfsdata/nlp/BERT_BASE_DIR/chinese_L-12_H-768_A-12/vocab.txt'
+bert_tokenizer.full_init(vocab_path)
+idx2word = []
+word2idx = {}
+
+with open(vocab_path) as fi:
+    for i, line in enumerate(fi):
+        idx2word.append(line.strip())
+        word2idx[line.strip()] = i
 
 flags = tf.flags
 
@@ -80,14 +89,12 @@ class TrainingInstance(object):
 
     def __str__(self):
         s = ""
-        s += "tokens: %s\n" % (" ".join(
-            [tokenization.printable_text(x) for x in self.tokens]))
+        s += "tokens: %s\n" % (" ".join( self.tokens))
         s += "segment_ids: %s\n" % (" ".join([str(x) for x in self.segment_ids]))
         s += "is_random_next: %s\n" % self.is_random_next
         s += "masked_lm_positions: %s\n" % (" ".join(
             [str(x) for x in self.masked_lm_positions]))
-        s += "masked_lm_labels: %s\n" % (" ".join(
-            [tokenization.printable_text(x) for x in self.masked_lm_labels]))
+        s += "masked_lm_labels: %s\n" % (" ".join(self.masked_lm_labels))
         s += "\n"
         return s
 
@@ -95,8 +102,7 @@ class TrainingInstance(object):
         return self.__str__()
 
 
-def write_instance_to_example_files(instances, tokenizer, max_seq_length,
-                                    max_predictions_per_seq, output_files):
+def write_instance_to_example_files(instances, max_seq_length, max_predictions_per_seq, output_files):
     """Create TF example files from `TrainingInstance`s."""
     writers = []
     for output_file in output_files:
@@ -106,7 +112,7 @@ def write_instance_to_example_files(instances, tokenizer, max_seq_length,
 
     total_written = 0
     for (inst_index, instance) in enumerate(instances):
-        input_ids = tokenizer.convert_tokens_to_ids(instance.tokens)
+        input_ids = [word2idx[word] for word in instance.tokens]
         input_mask = [1] * len(input_ids)
         segment_ids = list(instance.segment_ids)
         assert len(input_ids) <= max_seq_length
@@ -121,7 +127,7 @@ def write_instance_to_example_files(instances, tokenizer, max_seq_length,
         assert len(segment_ids) == max_seq_length
 
         masked_lm_positions = list(instance.masked_lm_positions)
-        masked_lm_ids = tokenizer.convert_tokens_to_ids(instance.masked_lm_labels)
+        masked_lm_ids = [word2idx[word] for word in instance.masked_lm_labels]
         masked_lm_weights = [1.0] * len(masked_lm_ids)
 
         while len(masked_lm_positions) < max_predictions_per_seq:
@@ -149,8 +155,7 @@ def write_instance_to_example_files(instances, tokenizer, max_seq_length,
 
         if inst_index < 20:
             tf.logging.info("*** Example ***")
-            tf.logging.info("tokens: %s" % " ".join(
-                [tokenization.printable_text(x) for x in instance.tokens]))
+            tf.logging.info("tokens: %s" % " ".join(instance.tokens))
 
             for feature_name in features.keys():
                 feature = features[feature_name]
@@ -178,7 +183,7 @@ def create_float_feature(values):
     return feature
 
 
-def create_training_instances(input_files, tokenizer, max_seq_length,
+def create_training_instances(input_files, max_seq_length,
                               dupe_factor, short_seq_prob, masked_lm_prob,
                               max_predictions_per_seq, rng):
     """Create `TrainingInstance`s from raw text."""
@@ -193,7 +198,7 @@ def create_training_instances(input_files, tokenizer, max_seq_length,
     for input_file in input_files:
         with tf.gfile.GFile(input_file, "r") as reader:
             while True:
-                line = tokenization.convert_to_unicode(reader.readline())
+                line = reader.readline()
                 if not line:
                     break
                 line = line.strip()
@@ -201,7 +206,7 @@ def create_training_instances(input_files, tokenizer, max_seq_length,
                 # Empty lines are used as document delimiters
                 if not line:
                     all_documents.append([])
-                tokens = tokenizer.tokenize(line)
+                tokens, _ = bert_tokenizer.full_tokenize(line)
                 if tokens:
                     all_documents[-1].append(tokens)
 
@@ -209,7 +214,7 @@ def create_training_instances(input_files, tokenizer, max_seq_length,
     all_documents = [x for x in all_documents if x]
     rng.shuffle(all_documents)
 
-    vocab_words = list(tokenizer.vocab.keys())
+    vocab_words = idx2word
     instances = []
     for _ in range(dupe_factor):
         for document_index in range(len(all_documents)):
@@ -440,9 +445,6 @@ def main(_):
     t_1 = time.time()
     tf.logging.set_verbosity(tf.logging.INFO)
 
-    tokenizer = tokenization.FullTokenizer(
-        vocab_file=FLAGS.vocab_file, do_lower_case=FLAGS.do_lower_case)
-
     input_files = []
     for input_pattern in FLAGS.input_file.split(","):
         print(input_pattern)
@@ -455,7 +457,7 @@ def main(_):
     rng = random.Random(FLAGS.random_seed)
     t0 = time.time()
     instances = create_training_instances(
-        input_files, tokenizer, FLAGS.max_seq_length, FLAGS.dupe_factor,
+        input_files, FLAGS.max_seq_length, FLAGS.dupe_factor,
         FLAGS.short_seq_prob, FLAGS.masked_lm_prob, FLAGS.max_predictions_per_seq,
         rng)
     t1 = time.time()
@@ -463,8 +465,7 @@ def main(_):
     tf.logging.info("*** Writing to output files ***")
     for output_file in output_files:
         tf.logging.info("  %s", output_file)
-    write_instance_to_example_files(instances, tokenizer, FLAGS.max_seq_length,
-                                    FLAGS.max_predictions_per_seq, output_files)
+    write_instance_to_example_files(instances, FLAGS.max_seq_length, FLAGS.max_predictions_per_seq, output_files)
     t2 = time.time()
     print(t0 - t_1, t1 - t0, t2 - t1)
 

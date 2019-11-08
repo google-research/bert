@@ -415,11 +415,10 @@ def main(_):
 
     input_files = []
     for input_pattern in tf.gfile.ListDirectory(FLAGS.input_file):
-        input_files.extend(tf.gfile.Glob(input_pattern))
-
-    tf.logging.info("*** Input Files ***")
-    for input_file in input_files:
-        tf.logging.info("  %s" % input_file)
+        if input_pattern.endswith('.tfrecord'):
+            input_file = str(FLAGS.input_file) + '/' + str(input_pattern)
+            input_files.append(input_file)
+            tf.logging.info("  %s" % input_file)
 
     tpu_cluster_resolver = None
     if FLAGS.use_tpu and FLAGS.tpu_name:
