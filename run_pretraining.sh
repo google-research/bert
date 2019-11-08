@@ -3,8 +3,8 @@
 BERT_BASE_DIR=./config
 python3 run_pretraining.py \
  --bert_config_file=$BERT_BASE_DIR/bert_config.json \
- --input_file=$STORAGE_BUCKET/data/tf_news_2016_zh_raw_news2016zh_1.tfrecord \
- --output_dir=$STORAGE_BUCKET/bert_output/ \
+ --input_file=$STORAGE_BUCKET/tfrecord \
+ --output_dir=$STORAGE_BUCKET/saved_model/ \
  --do_train=true \
  --do_eval=true \
  --use_tpu=true \

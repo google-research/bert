@@ -63,13 +63,13 @@ flags.DEFINE_bool("do_train", False, "Whether to run training.")
 
 flags.DEFINE_bool("do_eval", False, "Whether to run eval on the dev set.")
 
-flags.DEFINE_integer("train_batch_size", 32, "Total batch size for training.")
+flags.DEFINE_integer("train_batch_size", 128, "Total batch size for training.")
 
-flags.DEFINE_integer("eval_batch_size", 8, "Total batch size for eval.")
+flags.DEFINE_integer("eval_batch_size", 256, "Total batch size for eval.")
 
 flags.DEFINE_float("learning_rate", 5e-5, "The initial learning rate for Adam.")
 
-flags.DEFINE_integer("num_train_steps", 100000, "Number of training steps.")
+flags.DEFINE_integer("num_train_steps", 125000, "Number of training steps.")
 
 flags.DEFINE_integer("num_warmup_steps", 10000, "Number of warmup steps.")
 
@@ -174,7 +174,6 @@ def model_fn_builder(bert_config, init_checkpoint, learning_rate,
             tf.logging.info("  name = %s, shape = %s%s", var.name, var.shape,
                             init_string)
 
-        output_spec = None
         if mode == tf.estimator.ModeKeys.TRAIN:
             train_op = optimization.create_optimizer(
                 total_loss, learning_rate, num_train_steps, num_warmup_steps, use_tpu)
@@ -360,11 +359,10 @@ def input_fn_builder(input_files,
 
             # `cycle_length` is the number of parallel files that get read.
             cycle_length = min(num_cpu_threads, len(input_files))
-
             # `sloppy` mode means that the interleaving is not exact. This adds
             # even more randomness to the training pipeline.
             d = d.apply(
-                tf.contrib.data.parallel_interleave(
+                tf.data.experimental.parallel_interleave(
                     tf.data.TFRecordDataset,
                     sloppy=is_training,
                     cycle_length=cycle_length))
@@ -380,7 +378,7 @@ def input_fn_builder(input_files,
         # and we *don't* want to drop the remainder, otherwise we wont cover
         # every sample.
         d = d.apply(
-            tf.contrib.data.map_and_batch(
+            tf.data.experimental.map_and_batch(
                 lambda record: _decode_record(record, name_to_features),
                 batch_size=batch_size,
                 num_parallel_batches=num_cpu_threads,
@@ -416,7 +414,7 @@ def main(_):
     tf.gfile.MakeDirs(FLAGS.output_dir)
 
     input_files = []
-    for input_pattern in FLAGS.input_file.split(","):
+    for input_pattern in tf.gfile.ListDirectory(FLAGS.input_file):
         input_files.extend(tf.gfile.Glob(input_pattern))
 
     tf.logging.info("*** Input Files ***")
