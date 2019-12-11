@@ -210,21 +210,25 @@ class MyProcessor(DataProcessor):
     def __init__(self):
         self.df = self.load_data_from_jdv()
 
-    def load_data_from_jdv(self, file="./data/clean_reviewed_kcs_data.pkl"):
+    def load_data_from_jdv(self, file="./data/case_pair.pkl"):
         jdv_df = pd.read_pickle(file)
-        jdv_df = jdv_df[['label', 'kcs_id', 'title', 'issue', 'resolution']]
+        # jdv_df = jdv_df[['label', 'kcs_id', 'title', 'issue', 'resolution']]
         jdv_df = jdv_df.fillna(' ')
-        jdv_df['combined'] = jdv_df.apply(lambda x: ' '.join([x['title'], x['issue'], x['resolution']]),
-                                          axis=1)
-        jdv_df1 = jdv_df[jdv_df['label'] == 1]
-        jdv_df2 = jdv_df[jdv_df['label'] == 0][:700]
-        frames = [jdv_df1, jdv_df2]
-        jdv_df3 = pd.concat(frames)
+        # jdv_df['combined'] = jdv_df.apply(lambda x: ' '.join([x['title'], x['issue'], x['resolution']]),
+        #                                   axis=1)
+        # jdv_df1 = jdv_df[jdv_df['label'] == 1]
+        # jdv_df2 = jdv_df[jdv_df['label'] == 0][:700]
+        # frames = [jdv_df1, jdv_df2]
+        # jdv_df3 = pd.concat(frames)
 
-        self.train = jdv_df3.sample(frac=0.8, random_state=200)
-        self.dev = jdv_df3.drop(self.train.index)
+        self.train = jdv_df.sample(frac=0.8, random_state=200)
+        self.dev = jdv_df.drop(self.train.index)
+        self.test = self.dev.sample(frac=0.5, random_state=200)
+        self.dev = self.dev.drop(self.test.index)
+        self.test.to_pickle('./data/4test.pkl')
 
-        return jdv_df3
+        print(self.dev.shape, self.test.shape)
+        return jdv_df
 
     def get_train_examples(self, data_dir=None):
         """See base class."""
@@ -237,13 +241,16 @@ class MyProcessor(DataProcessor):
     def get_test_examples(self, data_dir=None):
         """See base class."""
 
-        data_set = pd.read_pickle('./data/clean_reviewed_kcs_data.pkl')
-        data_set = data_set.fillna(' ')
-        test_df = data_set[['title', 'issue', 'resolution', 'label']]
-        test_df['combined'] = test_df.apply(lambda x: ' '.join([x['title'], x['issue'], x['resolution']]),
-                                            axis=1)
+        # data_set = pd.read_pickle('./data/clean_reviewed_kcs_data.pkl')
+        # data_set = data_set.fillna(' ')
+        # test_df = data_set[['kcs_id', 'title', 'issue', 'resolution', 'label']]
+        # test_df['combined'] = test_df.apply(lambda x: ' '.join([x['title'], x['issue'], x['resolution']]),
+        #                                     axis=1)
 
-        return self._create_examples(test_df, "test")
+        self.test = pd.read_pickle('./data/4test.pkl')
+#        self.test = pd.read_pickle('/tmp/2rule_case_pair.pkl')
+
+        return self._create_examples(self.test, "test")
 
     def get_labels(self):
         """See base class."""
@@ -252,12 +259,14 @@ class MyProcessor(DataProcessor):
     def _create_examples(self, df, set_type):
         """Creates examples for the training and dev sets."""
 
-        df['combined'] = df.apply(lambda x: tokenization.convert_to_unicode(x['combined']), axis=1)
+        df['casea'] = df.apply(lambda x: tokenization.convert_to_unicode(x['casea']), axis=1)
+        df['caseb'] = df.apply(lambda x: tokenization.convert_to_unicode(x['caseb']), axis=1)
 
-        examples = df.apply(lambda x: InputExample(guid=x['kcs_id'],
+
+        examples = df.apply(lambda x: InputExample(guid=x['guid'],
                                                    # Globally unique ID for bookkeeping, unused in this example
-                                                   text_a=x['combined'],
-                                                   text_b=None,
+                                                   text_a=x['casea'],
+                                                   text_b=x['caseb'],
                                                    label=x['label']), axis=1)
 
         # examples = []
@@ -1051,3 +1060,4 @@ if __name__ == "__main__":
   flags.mark_flag_as_required("bert_config_file")
   flags.mark_flag_as_required("output_dir")
   tf.app.run()
+
