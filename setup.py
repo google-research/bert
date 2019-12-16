@@ -2,9 +2,9 @@ from setuptools import setup, find_packages
 
 runtime = {
     'pandas==0.24.2',
-    'scikit-learn>=0.21.2',
-    'gensim>=3.7.3',
-    'tensorflow>=1.13.1',
+    'scikit-learn==0.21.3',
+    'gensim==3.8.0',
+    'tensorflow==1.14.0',
     ##
 }
 
