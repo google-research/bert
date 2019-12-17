@@ -5,6 +5,7 @@ runtime = {
     'scikit-learn==0.21.3',
     'gensim==3.8.0',
     'tensorflow==1.14.0',
+    'Flask==1.1.1'
     ##
 }
 

@@ -19,7 +19,6 @@ def build_rule_kcs_dict():
 #                   FROM stg_gss_case
 #                   WHERE stg_curr_flg = true
 #                       AND case_language__c='en'
-#                       AND resolution1__c LIKE '%Answer Provided%'
 #                       AND isdeleted = false
 #                       AND ownerid != '00GA0000000XxxNMAS') c
 #                 INNER JOIN stg_gss_case_rsrc_rltnshp kcs ON kcs.case__c = c.id
@@ -44,12 +43,18 @@ def load_kcs_case_dict():
 def build_case_pairs(rule_kcs_dict, kcs_case_group_result, customer_input, rule_list):
     kcs_list = []
     for rule in rule_list:
-        kcs_list.append(rule_kcs_dict[rule])
+        try:
+            kcs_list.append(rule_kcs_dict[rule])
+        except:
+            print("rule {0} is not in the database", rule)
 
     test_df = None
     for kcs in kcs_list:
-        tmp_df = kcs_case_group_result.get_group(kcs)[['resource_display_id__c', 'casenumber', 'subject']]
-        test_df = pd.concat([test_df, tmp_df])
+        try:
+            tmp_df = kcs_case_group_result.get_group(kcs)[['resource_display_id__c', 'casenumber', 'subject']]
+            test_df = pd.concat([test_df, tmp_df])
+        except:
+            print("kcs {0} has no case linked", kcs)
     test_df.columns = ['caseb_kcs', 'caseb_id', 'caseb']
     test_df['casea_id'] = 'customer_input'
     test_df['casea'] = customer_input

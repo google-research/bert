@@ -3,6 +3,7 @@ from flask import request
 from build_data import build_rule_kcs_dict, load_kcs_case_dict, build_case_pairs
 from run_classifier import load_model, do_predict, flags, tf
 import json
+import os
 
 app = Flask(__name__)
 
@@ -37,7 +38,7 @@ def get_filter_rank_rules(result_df):
     filter_df['rule'] = filter_df.apply(lambda x: kcs_rule_dict[x['caseb_kcs']], axis=1)
     filter_df = filter_df[['rule', 'mean']]
     filter_df.columns = ['rule', 'score']
-    filter_df.sort_values(by=['score'], ascending=False)
+    filter_df = filter_df.sort_values(by=['score'], ascending=False)
     return filter_df
 
 
@@ -79,4 +80,5 @@ if __name__ == "__main__":
     flags.mark_flag_as_required("bert_config_file")
     flags.mark_flag_as_required("output_dir")
     tf.logging.set_verbosity(tf.logging.ERROR)
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
     app.run(debug=True)
