@@ -22,7 +22,7 @@ import re
 import tensorflow as tf
 
 
-def create_optimizer(loss, init_lr, num_train_steps, num_warmup_steps, use_tpu, accum_steps=1):
+def create_optimizer(loss, init_lr, num_train_steps, num_warmup_steps, accum_steps, use_tpu):
   """Creates an optimizer training op."""
   global_step = tf.train.get_or_create_global_step()
 
@@ -74,8 +74,8 @@ def create_optimizer(loss, init_lr, num_train_steps, num_warmup_steps, use_tpu, 
 
   grads = tf.gradients(loss, tvars)
 
-  accum = [accum_vars[i].assign_add(gv / tf.cast(accum_steps_count, tf.float32), use_locking=True) for i, gv in enumerate(grads)]
-  accum_ops = tf.group(accum, accum_steps_count.assign(accum_steps_count + 1, use_locking=True), global_step.assign(global_step + 1, use_locking=True))
+  accum = [accum_vars[i].assign_add(gv / tf.cast(accum_steps_const, tf.float32), use_locking=True) for i, gv in enumerate(grads)]
+  accum_ops = tf.group(accum, accum_steps_count.assign(accum_steps_count + 1, use_locking=True))
   
   def grad_step():
     zero_ops = tf.group([tv.assign(tf.zeros_like(tv), use_locking=True) for tv in accum_vars])
@@ -83,7 +83,7 @@ def create_optimizer(loss, init_lr, num_train_steps, num_warmup_steps, use_tpu, 
       (new_accum_vars, _) = tf.clip_by_global_norm(accum_vars, clip_norm=1.0)
       apply_grads = optimizer.apply_gradients(zip(new_accum_vars, tvars), global_step=global_step)
       with tf.control_dependencies([apply_grads]):
-        train_op = tf.group(zero_ops, accum_steps_count.assign(0, use_locking=True))
+        train_op = tf.group(zero_ops, accum_steps_count.assign(0, use_locking=True), global_step.assign(global_step + 1, use_locking=True))
     return train_op
 
   def accum_step():
@@ -186,6 +186,7 @@ class AdamWeightDecayOptimizer(tf.train.Optimizer):
     if m is not None:
       param_name = m.group(1)
     return param_name
+
 
 
 

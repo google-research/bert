@@ -443,7 +443,7 @@ def main(_):
       bert_config=bert_config,
       init_checkpoint=FLAGS.init_checkpoint,
       learning_rate=FLAGS.learning_rate,
-      num_train_steps=FLAGS.num_train_steps,
+      num_train_steps=FLAGS.num_train_steps / FLAGS.accum_steps,
       num_warmup_steps=FLAGS.num_warmup_steps,
       accum_steps=FLAGS.accum_steps,
       use_tpu=FLAGS.use_tpu,
