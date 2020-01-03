@@ -360,9 +360,38 @@ def dropout(input_tensor, dropout_prob):
 
 
 def layer_norm(input_tensor, name=None):
+  """Define a temp class to reuse layer_norm in TF 2.0"""
+  class bert_layer_norm(tf.compat.v1.keras.layers.LayerNormalization):
+    def call(self, inputs, gamma, beta):
+      self.gamma = gamma
+      self.beta = beta
+      return super(bert_layer_norm, self).call(inputs)
+  
   """Run layer normalization on the last dimension of the tensor."""
-  input_layer_norm = tf.compat.v1.keras.layers.LayerNormalization(axis=-1, name=name)
-  return input_layer_norm(input_tensor)
+  input_layer_norm = bert_layer_norm(axis=-1, center=False, scale=False,
+                                     name=name)
+  with tf.compat.v1.variable_scope(
+      name, 'LayerNorm', [input_tensor], reuse=None) as sc:
+    # Allocate parameters for the beta and gamma of the normalization.
+    dtype = input_tensor.dtype.base_dtype
+    param_shape = input_tensor.shape[-1:]
+    beta = tf.compat.v1.get_variable(
+        "beta",
+        shape=param_shape,
+        dtype=dtype,
+        initializer=tf.zeros_initializer(),
+        collections=None,
+        trainable=True)
+
+    gamma = tf.compat.v1.get_variable(
+        'gamma',
+        shape=param_shape,
+        dtype=dtype,
+        initializer=tf.ones_initializer(),
+        collections=None,
+        trainable=True)
+
+    return input_layer_norm(input_tensor, gamma, beta)
 
 
 def layer_norm_and_dropout(input_tensor, dropout_prob, name=None):
