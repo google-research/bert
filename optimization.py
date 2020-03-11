@@ -22,7 +22,7 @@ import re
 import tensorflow as tf
 
 
-def create_optimizer(loss, init_lr, num_train_steps, num_warmup_steps, use_tpu):
+def create_optimizer(loss, init_lr, num_train_steps, num_warmup_steps, use_tpu, hvd=None, use_fp16=False):
   """Creates an optimizer training op."""
   global_step = tf.train.get_or_create_global_step()
 
@@ -66,20 +66,38 @@ def create_optimizer(loss, init_lr, num_train_steps, num_warmup_steps, use_tpu):
 
   if use_tpu:
     optimizer = tf.contrib.tpu.CrossShardOptimizer(optimizer)
+  else:
+    if hvd is not None:
+      from horovod.tensorflow.compression import Compression
+      optimizer = hvd.DistributedOptimizer(optimizer, sparse_as_dense=True, compression=Compression.fp16)
+    if use_fp16:
+      loss_scale_manager = tf.contrib.mixed_precision.ExponentialUpdateLossScaleManager(init_loss_scale=2**32, incr_every_n_steps=1000, decr_every_n_nan_or_inf=2, decr_ratio=0.5)
+      optimizer = tf.contrib.mixed_precision.LossScaleOptimizer(optimizer, loss_scale_manager)
 
   tvars = tf.trainable_variables()
-  grads = tf.gradients(loss, tvars)
+  grads_and_vars = optimizer.compute_gradients(loss, tvars)
+  grads_and_vars = [(g,v) for g,v in grads_and_vars if g is not None]
+  grads, tvars = list(zip(*grads_and_vars))
+  all_are_finite = tf.reduce_all([tf.reduce_all(tf.is_finite(g)) for g in grads]) if use_fp16 else tf.constant(True, dtype=tf.bool)
 
   # This is how the model was pre-trained.
-  (grads, _) = tf.clip_by_global_norm(grads, clip_norm=1.0)
+  # ensure global norm is a finite number 
+  # to prevent clip_by_global_norm from having a hizzy fit.
+  (clipped_grads, _) = tf.clip_by_global_norm(
+        grads, clip_norm=1.0, 
+        use_norm=tf.cond(
+            all_are_finite,
+            lambda: tf.global_norm(grads),
+            lambda: tf.constant(1.0)))
 
   train_op = optimizer.apply_gradients(
-      zip(grads, tvars), global_step=global_step)
+      list(zip(clipped_grads, tvars)), global_step=global_step)
 
   # Normally the global step update is done inside of `apply_gradients`.
   # However, `AdamWeightDecayOptimizer` doesn't do this. But if you use
   # a different optimizer, you should probably take this line out.
-  new_global_step = global_step + 1
+  new_global_step = tf.cond(all_are_finite, lambda: global_step+1, lambda: global_step)
+  new_global_step = tf.identity(new_global_step, name='step_update')
   train_op = tf.group(train_op, [global_step.assign(new_global_step)])
   return train_op
 
@@ -98,7 +116,7 @@ class AdamWeightDecayOptimizer(tf.train.Optimizer):
     """Constructs a AdamWeightDecayOptimizer."""
     super(AdamWeightDecayOptimizer, self).__init__(False, name)
 
-    self.learning_rate = learning_rate
+    self.learning_rate = tf.identity(learning_rate, name='learning_rate')
     self.weight_decay_rate = weight_decay_rate
     self.beta_1 = beta_1
     self.beta_2 = beta_2
