@@ -33,6 +33,9 @@ MANIFEST
 *.manifest
 *.spec
 
+# IntelliJ IDE metadata
+.idea
+
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt

@@ -728,6 +728,72 @@ both) of the following techniques:
 
 **However, this is not implemented in the current release.**
 
+## Using BERT with multi-GPU support using Horovod
+It is possible to train BERT on multiple GPUs using 
+[**Horovod**](http://horovod.ai). Horovod is a 
+scalable distributed deep learning framework, compatible with Tensorflow, 
+PyTorch, and MXNet. Horovod is a python package and has a dependency on MPI. 
+Check out the 
+[**installation guide**](https://github.com/horovod/horovod#install) 
+to learn how to install Horovd. If you are not familiar with horovod, check out 
+[**this tutorial**](https://www.youtube.com/watch?v=4y0TDK3KoCA) to learn more 
+about it.
+
+To run BERT with horovod, you need to install the 
+horovod python package and run the horovodrun command in the following form. 
+Note that you need to add the `--use_multi_gpu` flag and set it to `True` and 
+make sure to remove the `--use_tpu` flag or set it to `False` as shown in the 
+following example.
+
+
+The following example will run BERT on a single machine with 4 GPUs.
+```shell
+horovodrun -np 4 -H localhost:4 \
+    python run_classifier.py \
+        --task_name=MRPC \
+        --do_train=true \
+        --do_eval=false \
+        --data_dir=$GLUE_DIR/MRPC \
+        --vocab_file=$BERT_BASE_DIR/vocab.txt \
+        --bert_config_file=$BERT_BASE_DIR/bert_config.json \
+        --max_seq_length=128 \
+        --train_batch_size=32 \
+        --learning_rate=2e-5 \
+        --num_train_epochs=2000 \
+        --do_lower_case=False \
+        --output_dir=/tmp/mrpc_output/ \
+        --init_checkpoint=$BERT_BASE_DIR/bert_model.ckpt \
+        --use_multi_gpu=true
+```
+
+You can train your model on multiple machines as well. For instance, this 
+command will train the model on 4 workers where each worker has 4 GPUs, 16 GPUs 
+in total. 
+```shell
+horovodrun -np 16 -H host-1:4,host-2:4,host-3:4,host-4:4 \
+    python run_classifier.py \
+        --task_name=MRPC \
+        --do_train=true \
+        --do_eval=false \
+        --data_dir=$GLUE_DIR/MRPC \
+        --vocab_file=$BERT_BASE_DIR/vocab.txt \
+        --bert_config_file=$BERT_BASE_DIR/bert_config.json \
+        --max_seq_length=128 \
+        --train_batch_size=32 \
+        --learning_rate=2e-5 \
+        --num_train_epochs=2000 \
+        --do_lower_case=False \
+        --output_dir=/tmp/mrpc_output/ \
+        --init_checkpoint=$BERT_BASE_DIR/bert_model.ckpt \
+        --use_multi_gpu=true
+```
+
+
+### Efficiency of scaling with Horovod
+
+We have tested BERT model with 32 GeForce GTX 1080 Ti GPUs and and were able 
+to achieve a scaling factor of %70 per GPU.  
+
 ## Using BERT to extract fixed feature vectors (like ELMo)
 
 In certain cases, rather than fine-tuning the entire pre-trained model

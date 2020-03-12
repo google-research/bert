@@ -26,6 +26,8 @@ import optimization
 import tokenization
 import tensorflow as tf
 
+import horovod.tensorflow as hvd
+
 flags = tf.flags
 
 FLAGS = flags.FLAGS
@@ -98,6 +100,9 @@ flags.DEFINE_integer("iterations_per_loop", 1000,
                      "How many steps to make in each estimator call.")
 
 flags.DEFINE_bool("use_tpu", False, "Whether to use TPU or GPU/CPU.")
+
+flags.DEFINE_bool("use_multi_gpu", False, "Use multiple GPUs for training "
+                                          "using Horovod.")
 
 tf.flags.DEFINE_string(
     "tpu_name", None,
@@ -618,7 +623,7 @@ def create_model(bert_config, is_training, input_ids, input_mask, segment_ids,
 
 def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
                      num_train_steps, num_warmup_steps, use_tpu,
-                     use_one_hot_embeddings):
+                     use_one_hot_embeddings, use_multi_gpu):
   """Returns `model_fn` closure for TPUEstimator."""
 
   def model_fn(features, labels, mode, params):  # pylint: disable=unused-argument
@@ -672,7 +677,8 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
     if mode == tf.estimator.ModeKeys.TRAIN:
 
       train_op = optimization.create_optimizer(
-          total_loss, learning_rate, num_train_steps, num_warmup_steps, use_tpu)
+          total_loss, learning_rate, num_train_steps, num_warmup_steps, use_tpu,
+          use_multi_gpu)
 
       output_spec = tf.contrib.tpu.TPUEstimatorSpec(
           mode=mode,
@@ -781,6 +787,11 @@ def convert_examples_to_features(examples, label_list, max_seq_length,
 
 
 def main(_):
+  # Horovod: initialize Horovod if using multiple GPUs.
+  if FLAGS.use_multi_gpu:
+    hvd.init()
+    FLAGS.output_dir = FLAGS.output_dir if hvd.rank() == 0 else os.path.join(FLAGS.output_dir, str(hvd.rank()))
+
   tf.logging.set_verbosity(tf.logging.INFO)
 
   processors = {
@@ -825,7 +836,23 @@ def main(_):
         FLAGS.tpu_name, zone=FLAGS.tpu_zone, project=FLAGS.gcp_project)
 
   is_per_host = tf.contrib.tpu.InputPipelineConfig.PER_HOST_V2
-  run_config = tf.contrib.tpu.RunConfig(
+  if FLAGS.use_multi_gpu:
+    # Horovod: pin GPU to be used to process local rank (one GPU per process)
+    config = tf.ConfigProto()
+    config.gpu_options.visible_device_list = str(hvd.local_rank())
+    run_config = tf.contrib.tpu.RunConfig(
+      cluster=tpu_cluster_resolver,
+      master=FLAGS.master,
+      model_dir=FLAGS.output_dir,
+      save_checkpoints_steps=FLAGS.save_checkpoints_steps,
+      tpu_config=tf.contrib.tpu.TPUConfig(
+          iterations_per_loop=FLAGS.iterations_per_loop,
+          num_shards=FLAGS.num_tpu_cores,
+          per_host_input_for_training=is_per_host),
+      log_step_count_steps=25,
+      session_config=config)
+  else:
+    run_config = tf.contrib.tpu.RunConfig(
       cluster=tpu_cluster_resolver,
       master=FLAGS.master,
       model_dir=FLAGS.output_dir,
@@ -844,6 +871,11 @@ def main(_):
         len(train_examples) / FLAGS.train_batch_size * FLAGS.num_train_epochs)
     num_warmup_steps = int(num_train_steps * FLAGS.warmup_proportion)
 
+    # Horovod: adjust number of steps based on number of GPUs.
+    if FLAGS.use_multi_gpu:
+      num_warmup_steps = num_warmup_steps // hvd.size()
+      num_train_steps = num_train_steps // hvd.size()
+
   model_fn = model_fn_builder(
       bert_config=bert_config,
       num_labels=len(label_list),
@@ -852,7 +884,9 @@ def main(_):
       num_train_steps=num_train_steps,
       num_warmup_steps=num_warmup_steps,
       use_tpu=FLAGS.use_tpu,
-      use_one_hot_embeddings=FLAGS.use_tpu)
+      use_one_hot_embeddings=FLAGS.use_tpu,
+      use_multi_gpu=FLAGS.use_multi_gpu
+  )
 
   # If TPU is not available, this will fall back to normal Estimator on CPU
   # or GPU.
@@ -877,7 +911,18 @@ def main(_):
         seq_length=FLAGS.max_seq_length,
         is_training=True,
         drop_remainder=True)
-    estimator.train(input_fn=train_input_fn, max_steps=num_train_steps)
+
+    # Horovod: In the case of multi GPU training with Horovod, adding
+    # hvd.BroadcastGlobalVariablesHook(0) hook, broadcasts the initial variable
+    # states from rank 0 to all other processes. This is necessary to ensure
+    # consistent initialization of all workers when training is started with
+    # random weights or restored from a checkpoint.
+    if FLAGS.use_multi_gpu:
+        hooks = [hvd.BroadcastGlobalVariablesHook(0)]
+    else:
+        hooks = []
+    estimator.train(input_fn=train_input_fn, max_steps=num_train_steps,
+                    hooks=hooks)
 
   if FLAGS.do_eval:
     eval_examples = processor.get_dev_examples(FLAGS.data_dir)
