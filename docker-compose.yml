@@ -1,0 +1,25 @@
+version: '3'
+services:
+  bert-agnews:
+    image: "lapolonio/tf_serving_bert_agnews:1547919083_v2"
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: "800M"
+        reservations:
+          cpus: "0.25"
+          memory: "100M"
+    ports:
+      - "8500:8500"
+      - "8501:8501"
+    labels:
+      kompose.service.type: LoadBalancer
+  agnews-client:
+    image: "lapolonio/bert_agnews_client:v3"
+    ports:
+      - "5000:5000"
+    depends_on:
+      - bert-agnews
+    labels:
+      kompose.service.type: LoadBalancer
