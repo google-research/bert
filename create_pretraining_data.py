@@ -398,8 +398,12 @@ def create_masked_lm_predictions(tokens, masked_lm_prob,
           masked_token = tokens[index]
         # 10% of the time, replace with random word
         else:
-          masked_token = vocab_words[rng.randint(0, len(vocab_words) - 1)]
-
+          # Make sure that the random word is not the marking token such as "[CLS]"
+          while True:
+            masked_token = vocab_words[rng.randint(0, len(vocab_words) - 1)]
+            if masked_token != "[CLS]" and masked_token != "[SEP]" and masked_token != "[PAD]" and masked_token != "[MASK]":
+              break
+              
       output_tokens[index] = masked_token
 
       masked_lms.append(MaskedLmInstance(index=index, label=tokens[index]))
