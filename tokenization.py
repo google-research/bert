@@ -269,7 +269,7 @@ class BasicTokenizer(object):
     # Note that the CJK Unicode block is NOT all Japanese and Korean characters,
     # despite its name. The modern Korean Hangul alphabet is a different block,
     # as is Japanese Hiragana and Katakana. Those alphabets are used to write
-    # space-separated words, so they are not treated specially and handled
+    # space-separated words, so they are not treated specially and are handled
     # like the all of the other languages.
     if ((cp >= 0x4E00 and cp <= 0x9FFF) or  #
         (cp >= 0x3400 and cp <= 0x4DBF) or  #
