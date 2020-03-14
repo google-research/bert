@@ -117,19 +117,17 @@ def printable_text(text):
   else:
     raise ValueError("Not running on Python2 or Python 3?")
 
-
 def load_vocab(vocab_file):
   """Loads a vocabulary file into a dictionary."""
   vocab = collections.OrderedDict()
-  index = 0
   with tf.gfile.GFile(vocab_file, "r") as reader:
     while True:
       token = convert_to_unicode(reader.readline())
       if not token:
         break
-      token = token.strip()
-      vocab[token] = index
-      index += 1
+      token = token.strip().split()[0]
+      if token not in vocab:
+        vocab[token] = len(vocab)
   return vocab
 
 
