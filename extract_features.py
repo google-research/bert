@@ -379,6 +379,7 @@ def main(_):
       use_tpu=FLAGS.use_tpu,
       model_fn=model_fn,
       config=run_config,
+      train_batch_size=123, # arbitrary, required if use_tpu is True
       predict_batch_size=FLAGS.batch_size)
 
   input_fn = input_fn_builder(
