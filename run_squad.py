@@ -491,8 +491,8 @@ def _improve_answer_span(doc_tokens, input_start, input_end, tokenizer,
   #
   # However, this is not always possible. Consider the following:
   #
-  #   Question: What country is the top exporter of electornics?
-  #   Context: The Japanese electronics industry is the lagest in the world.
+  #   Question: What country is the top exporter of electronics?
+  #   Context: The Japanese electronics industry is the largest in the world.
   #   Answer: Japan
   #
   # In this case, the annotator chose "Japan" as a character sub-span of
@@ -948,8 +948,8 @@ def get_final_text(pred_text, orig_text, do_lower_case):
   #
   # What we really want to return is "Steve Smith".
   #
-  # Therefore, we have to apply a semi-complicated alignment heruistic between
-  # `pred_text` and `orig_text` to get a character-to-charcter alignment. This
+  # Therefore, we have to apply a semi-complicated alignment heuristic between
+  # `pred_text` and `orig_text` to get a character-to-character alignment. This
   # can fail in certain cases in which case we just return `orig_text`.
 
   def _strip_spaces(text):

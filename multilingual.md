@@ -56,7 +56,7 @@ accuracy (compared to English) is due to the quality of the machine translation
 vs. the quality of the pre-trained model.
 
 **Translate Test** means that the XNLI test set was machine translated from the
-foreign language into English. So training and evaluation were both done on
+foreign language into English. So training and evaluation were both done in
 English. However, test evaluation was done on machine-translated English, so the
 accuracy depends on the quality of the machine translation system.
 
