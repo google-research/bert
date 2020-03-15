@@ -938,8 +938,8 @@ def reshape_to_matrix(input_tensor):
   if ndims == 2:
     return input_tensor
 
-  width = input_tensor.shape[-1]
-  output_tensor = tf.reshape(input_tensor, [-1, width])
+  width = int(input_tensor.shape[-1])
+  output_tensor = tf.reshape(input_tensor, shape = [-1, width])
   return output_tensor
 
 
