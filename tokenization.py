@@ -212,10 +212,27 @@ class BasicTokenizer(object):
       if self.do_lower_case:
         token = token.lower()
         token = self._run_strip_accents(token)
+      token = self._check_korean_token(token)
       split_tokens.extend(self._run_split_on_punc(token))
 
     output_tokens = whitespace_tokenize(" ".join(split_tokens))
     return output_tokens
+
+  def _is_korean_char(self, cp):
+
+    """Checks whether CP is the codepoint of a KOR character."""
+    # This defines a "Hangul Jamo" as anything in
+    # Hangul Jamo & Hangul Compatibility Jamo Unicode block:
+    # https://en.wikipedia.org/wiki/Hangul_Jamo_(Unicode_block)
+    # https://en.wikipedia.org/wiki/Hangul_Compatibility_Jamo
+
+    if ((cp >= 0x1100 and cp <= 0x11FF) or  #
+        (cp >= 0x3131 and cp <= 0x319E)): #
+      return True
+
+    return False
+
+
 
   def _run_strip_accents(self, text):
     """Strips accents from a piece of text."""
@@ -296,6 +313,30 @@ class BasicTokenizer(object):
         output.append(char)
     return "".join(output)
 
+  def _check_korean_token(self, token):
+    '''check whether korea char and normalize to "NFC" '''
+    # NFD-normalized Han-gul is broken down into syllables
+    # But the vocabulary was made in units of Eulogy.
+    # That's why every word becomes [UNK].
+    # For example:
+    #  ['안녕'] = ['ㅇ','ㅏ','ㄴ','ㄴ','ㅕ','ㅇ'] (NFD)
+    #  ['안녕'] = ['안','녕'] (NFD)
+    start = 0
+    end = 0
+    output = []
+    token_length = len(token)
+    for i in range(token_length):
+      cp = ord(token[i])
+      if self._is_korean_char(cp):
+        end += 1
+      else:
+        if start != end:
+          output.append(unicodedata.normalize('NFC', token[start:end]))
+        start = end
+        end += 1
+      if i == token_length - 1:
+        output.append(unicodedata.normalize('NFC', token[start:end]))
+    return ''.join(output)
 
 class WordpieceTokenizer(object):
   """Runs WordPiece tokenziation."""
@@ -322,7 +363,6 @@ class WordpieceTokenizer(object):
     Returns:
       A list of wordpiece tokens.
     """
-
     text = convert_to_unicode(text)
 
     output_tokens = []
