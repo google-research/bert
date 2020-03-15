@@ -634,8 +634,10 @@ and the best non-null answer for each question will be in the file
 
 Run this script to tune a threshold for predicting null versus non-null answers:
 
+```shell
 python $SQUAD_DIR/evaluate-v2.0.py $SQUAD_DIR/dev-v2.0.json
 ./squad/predictions.json --na-prob-file ./squad/null_odds.json
+```
 
 Assume the script outputs "best_f1_thresh" THRESH. (Typical values are between
 -1.0 and -5.0). You can now re-run the model to generate predictions with the
