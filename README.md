@@ -289,8 +289,7 @@ update steps), and that's BERT.
 Using BERT has two stages: *Pre-training* and *fine-tuning*.
 
 **Pre-training** is fairly expensive (four days on 4 to 16 Cloud TPUs), but is a
-one-time procedure for each language (current models are English-only, but
-multilingual models will be released in the near future). We are releasing a
+one-time procedure for each language (or each multilingual model). We are releasing a
 number of pre-trained models from the paper which were pre-trained at Google.
 Most NLP researchers will never need to pre-train their own model from scratch.
 
@@ -1071,12 +1070,9 @@ our results. We were not involved in the creation or maintenance of the Chainer
 implementation so please direct any questions towards the authors of that
 repository.
 
-#### Will models in other languages be released?
+#### For which languages have models been released?
 
-Yes, we plan to release a multi-lingual BERT model in the near future. We cannot
-make promises about exactly which languages will be included, but it will likely
-be a single model which includes *most* of the languages which have a
-significantly-sized Wikipedia.
+We have released models for English and Chinese, as well as multilingual models.  We plan to release models for more languages with a sufficiently large corpus.
 
 #### Will models larger than `BERT-Large` be released?
 
