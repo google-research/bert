@@ -529,7 +529,7 @@ def create_attention_mask_from_input_mask(from_tensor, to_mask):
     to_mask: int32 Tensor of shape [batch_size, to_seq_length].
 
   Returns:
-    float Tensor of shape [batch_size, from_seq_length, to_seq_length].
+    float Tensor of shape [batch_size, 1,  from_seq_length, to_seq_length].
   """
   from_shape = get_shape_list(from_tensor, expected_rank=[2, 3])
   batch_size = from_shape[0]
@@ -539,20 +539,27 @@ def create_attention_mask_from_input_mask(from_tensor, to_mask):
   to_seq_length = to_shape[1]
 
   to_mask = tf.cast(
-      tf.reshape(to_mask, [batch_size, 1, to_seq_length]), tf.float32)
+      tf.reshape(to_mask, [batch_size, 1, 1, to_seq_length]), tf.float32)
 
   # We don't assume that `from_tensor` is a mask (although it could be). We
   # don't actually care if we attend *from* padding tokens (only *to* padding)
   # tokens so we create a tensor of all ones.
   #
-  # `broadcast_ones` = [batch_size, from_seq_length, 1]
+  # `broadcast_ones` = [batch_size, 1, from_seq_length, 1]
   broadcast_ones = tf.ones(
-      shape=[batch_size, from_seq_length, 1], dtype=tf.float32)
+      shape=[batch_size, 1, from_seq_length, 1], dtype=tf.float32)
 
   # Here we broadcast along two dimensions to create the mask.
   mask = broadcast_ones * to_mask
 
-  return mask
+
+  # `attention_mask` = [batch_size, 1, from_seq_length, to_seq_length]
+  # Since attention_mask is 1.0 for positions we want to attend and 0.0 for
+  # masked positions, this operation will create a tensor which is 0.0 for
+  # positions we want to attend and -10000.0 for masked positions.
+  attention_mask = (1.0 - tf.cast(mask, tf.float32)) * -10000.0
+
+  return attention_mask
 
 
 def attention_layer(from_tensor,
@@ -593,10 +600,9 @@ def attention_layer(from_tensor,
     from_tensor: float Tensor of shape [batch_size, from_seq_length,
       from_width].
     to_tensor: float Tensor of shape [batch_size, to_seq_length, to_width].
-    attention_mask: (optional) int32 Tensor of shape [batch_size,
-      from_seq_length, to_seq_length]. The values should be 1 or 0. The
-      attention scores will effectively be set to -infinity for any positions in
-      the mask that are 0, and will be unchanged for positions that are 1.
+    attention_mask: (optional) float Tensor of shape [batch_size, 1, 
+      from_seq_length, to_seq_length]. The values should be -1000.0 or 0.0. The
+      value of -1000.0 is for masked positions, and 0.0 for positions we want to attend.
     num_attention_heads: int. Number of attention heads.
     size_per_head: int. Size of each attention head.
     query_act: (optional) Activation function for the query transform.
@@ -703,17 +709,9 @@ def attention_layer(from_tensor,
                                  1.0 / math.sqrt(float(size_per_head)))
 
   if attention_mask is not None:
-    # `attention_mask` = [B, 1, F, T]
-    attention_mask = tf.expand_dims(attention_mask, axis=[1])
-
-    # Since attention_mask is 1.0 for positions we want to attend and 0.0 for
-    # masked positions, this operation will create a tensor which is 0.0 for
-    # positions we want to attend and -10000.0 for masked positions.
-    adder = (1.0 - tf.cast(attention_mask, tf.float32)) * -10000.0
-
     # Since we are adding it to the raw scores before the softmax, this is
     # effectively the same as removing these entirely.
-    attention_scores += adder
+    attention_scores += attention_mask
 
   # Normalize the attention scores to probabilities.
   # `attention_probs` = [B, N, F, T]
