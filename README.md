@@ -188,7 +188,7 @@ obtains state-of-the-art results on a wide array of Natural Language Processing
 
 Our academic paper which describes BERT in detail and provides full results on a
 number of tasks can be found here:
-[https://arxiv.org/abs/1810.04805](https://arxiv.org/abs/1810.04805).
+[https://www.aclweb.org/anthology/N19-1423](https://www.aclweb.org/anthology/N19-1423).
 
 To give a few numbers, here are the results on the
 [SQuAD v1.1](https://rajpurkar.github.io/SQuAD-explorer/) question answering
@@ -1091,18 +1091,25 @@ All code *and* models are released under the Apache 2.0 license. See the
 
 #### How do I cite BERT?
 
-For now, cite [the Arxiv paper](https://arxiv.org/abs/1810.04805):
+Cite [the NAACL 2019 paper](https://www.aclweb.org/anthology/N19-1423):
 
 ```
-@article{devlin2018bert,
-  title={BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding},
-  author={Devlin, Jacob and Chang, Ming-Wei and Lee, Kenton and Toutanova, Kristina},
-  journal={arXiv preprint arXiv:1810.04805},
-  year={2018}
+@inproceedings{devlin2018bert,
+    title = "{BERT}: Pre-training of Deep Bidirectional Transformers for Language Understanding",
+    author = "Devlin, Jacob  and
+      Chang, Ming-Wei  and
+      Lee, Kenton  and
+      Toutanova, Kristina",
+    booktitle = "Proceedings of the 2019 Conference of the North {A}merican Chapter of the Association for Computational Linguistics: Human Language Technologies, Volume 1 (Long and Short Papers)",
+    month = jun,
+    year = "2019",
+    address = "Minneapolis, Minnesota",
+    publisher = "Association for Computational Linguistics",
+    url = "https://www.aclweb.org/anthology/N19-1423",
+    doi = "10.18653/v1/N19-1423",
+    pages = "4171--4186"
 }
 ```
-
-If we submit the paper to a conference or journal, we will update the BibTeX.
 
 ## Disclaimer
 
