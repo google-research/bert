@@ -852,7 +852,7 @@ def main(_):
       num_train_steps=num_train_steps,
       num_warmup_steps=num_warmup_steps,
       use_tpu=FLAGS.use_tpu,
-      use_one_hot_embeddings=FLAGS.use_tpu)
+      use_one_hot_embeddings=FLAGS.use_one_hot_embeddings)
 
   # If TPU is not available, this will fall back to normal Estimator on CPU
   # or GPU.
