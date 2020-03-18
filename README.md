@@ -336,7 +336,7 @@ These models are all released under the same license as the source code (Apache
 For information about the Multilingual and Chinese model, see the
 [Multilingual README](https://github.com/google-research/bert/blob/master/multilingual.md).
 
-**When using a cased model, make sure to pass `--do_lower=False` to the training
+**When using a cased model, make sure to pass `--do_lower_case=False` to the training
 scripts. (Or pass `do_lower_case=False` directly to `FullTokenizer` if you're
 using your own script.)**
 
