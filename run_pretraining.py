@@ -22,6 +22,8 @@ import os
 import modeling
 import optimization
 import tensorflow as tf
+# Add Horovod to run_pretraining
+import horovod.tensorflow as hvd
 
 flags = tf.flags
 
@@ -104,6 +106,7 @@ tf.flags.DEFINE_string("master", None, "[Optional] TensorFlow master URL.")
 flags.DEFINE_integer(
     "num_tpu_cores", 8,
     "Only used if `use_tpu` is True. Total number of TPU cores to use.")
+    
 
 
 def model_fn_builder(bert_config, init_checkpoint, learning_rate,
@@ -404,6 +407,14 @@ def _decode_record(record, name_to_features):
 
 
 def main(_):
+  # [HVD] Initialize the library: basic bookkeeping, sets up communication between GPUs, allocates buffers etc.
+  hvd.init()
+  # [HVD] Use different output directories for different GPU's. 
+  FLAGS.output_dir = FLAGS.output_dir if hvd.rank() == 0 else os.path.join(FLAGS.output_dir, str(hvd.rank()))
+  # [HVD] The training_steps for each GPU is the total steps divided by the number of GPU's.
+  FLAGS.num_train_steps = FLAGS.num_train_steps // hvd.size()
+  FLAGS.num_warmup_steps = FLAGS.num_warmup_steps // hvd.size()
+
   tf.logging.set_verbosity(tf.logging.INFO)
 
   if not FLAGS.do_train and not FLAGS.do_eval:
@@ -427,6 +438,11 @@ def main(_):
         FLAGS.tpu_name, zone=FLAGS.tpu_zone, project=FLAGS.gcp_project)
 
   is_per_host = tf.contrib.tpu.InputPipelineConfig.PER_HOST_V2
+
+  # [HVD] Pin each worker to a GPU (make sure one worker uses only one GPU).
+  config = tf.ConfigProto()
+  config.gpu_options.visible_device_list = str(hvd.local_rank())
+
   run_config = tf.contrib.tpu.RunConfig(
       cluster=tpu_cluster_resolver,
       master=FLAGS.master,
@@ -435,7 +451,9 @@ def main(_):
       tpu_config=tf.contrib.tpu.TPUConfig(
           iterations_per_loop=FLAGS.iterations_per_loop,
           num_shards=FLAGS.num_tpu_cores,
-          per_host_input_for_training=is_per_host))
+          per_host_input_for_training=is_per_host),
+      log_step_count_steps=25,
+      session_config=config)
 
   model_fn = model_fn_builder(
       bert_config=bert_config,
@@ -463,7 +481,10 @@ def main(_):
         max_seq_length=FLAGS.max_seq_length,
         max_predictions_per_seq=FLAGS.max_predictions_per_seq,
         is_training=True)
-    estimator.train(input_fn=train_input_fn, max_steps=FLAGS.num_train_steps)
+
+   # [HVD] Ensure all GPU's start with the same weights.
+    hooks = [hvd.BroadcastGlobalVariablesHook(0)]
+    estimator.train(input_fn=train_input_fn, max_steps=FLAGS.num_train_steps, hooks=hooks)
 
   if FLAGS.do_eval:
     tf.logging.info("***** Running evaluation *****")
