@@ -21,9 +21,12 @@ from __future__ import print_function
 import re
 import tensorflow as tf
 
-import horovod.tensorflow as hvd
+try:
+  import horovod.tensorflow as hvd
+except:
+  hvd = None
 
-def create_optimizer(loss, init_lr, num_train_steps, num_warmup_steps, use_tpu):
+def create_optimizer(loss, init_lr, num_train_steps, num_warmup_steps, use_tpu, use_hvd = False):
   """Creates an optimizer training op."""
   global_step = tf.train.get_or_create_global_step()
 
@@ -37,6 +40,9 @@ def create_optimizer(loss, init_lr, num_train_steps, num_warmup_steps, use_tpu):
       end_learning_rate=0.0,
       power=1.0,
       cycle=False)
+  # if use_hvd:
+  #   # May want to scale learning rate by number of GPUs
+  #   learning_rate *= hvd.size()
 
   # Implements linear warmup. I.e., if global_step < num_warmup_steps, the
   # learning rate will be `global_step/num_warmup_steps * init_lr`.
@@ -58,30 +64,31 @@ def create_optimizer(loss, init_lr, num_train_steps, num_warmup_steps, use_tpu):
   # is how the model was trained (note that the Adam m/v variables are NOT
   # loaded from init_checkpoint.)
   optimizer = AdamWeightDecayOptimizer(
-      # learning_rate=learning_rate * hvd.size(),
       learning_rate=learning_rate,
       weight_decay_rate=0.01,
       beta_1=0.9,
       beta_2=0.999,
       epsilon=1e-6,
       exclude_from_weight_decay=["LayerNorm", "layer_norm", "bias"])
-      
-  # [HVD] Wrap the original optimizer by Horovod's distributed optimizer, which handles all the under the hood allreduce calls. 
-  # Notice Horovod only does synchronized parameter update.
-  optimizer = hvd.DistributedOptimizer(optimizer)
+  
+  if use_hvd:
+    # [HVD] Wrap the original optimizer by Horovod's distributed optimizer, which handles all the under the hood allreduce calls. 
+    # Notice Horovod only does synchronized parameter update.
+    optimizer = hvd.DistributedOptimizer(optimizer)
 
   if use_tpu:
     optimizer = tf.contrib.tpu.CrossShardOptimizer(optimizer)
 
   tvars = tf.trainable_variables()
-  grads_and_vars=optimizer.compute_gradients(loss, tvars)
-  # [HVD] This finalize the changes in this section
-  # This is how the model was pre-trained.
-  # train_op = optimizer.apply_gradients(
-  #     grads_and_vars=grads_and_vars, global_step=global_step)
+  if use_hvd:
+    # [HVD] Use distributed optimizer to compute gradients
+    grads_and_vars=optimizer.compute_gradients(loss, tvars)
+    grads = [grad for grad,var in grads_and_vars]
+    tvars = [var for grad,var in grads_and_vars]
+  else:
+    # Use standard TF gradients
+    grads = tf.gradients(loss, tvars)
 
-  grads = [grad for grad,var in grads_and_vars]
-  tvars = [var for grad,var in grads_and_vars]
   (grads, _) = tf.clip_by_global_norm(grads, clip_norm=1.0)
   train_op = optimizer.apply_gradients(zip(grads, tvars), global_step=global_step)
 

@@ -29,7 +29,7 @@ CODE_DIR_INSIDE=/data/code
 echo 
 echo "=== Docker pulling image $IMAGE and start container ==="
 docker pull $IMAGE
-CTNRNAME=RunDocker
+CTNRNAME=ROCmDockerContainer
 echo -n "Is $CTNRNAME running? "
 docker inspect -f '{{.State.Running}}' $CTNRNAME
 if [ $? -eq 0 ]; then
@@ -37,7 +37,7 @@ if [ $? -eq 0 ]; then
     docker stop $CTNRNAME
 fi
 echo "Starting $CTNRNAME"
-docker run --name $CTNRNAME -it -d --rm --network=host --device=/dev/kfd --device=/dev/dri --ipc=host --shm-size 16G --group-add video --cap-add=SYS_PTRACE --security-opt seccomp=unconfined -w $CODE_DIR_INSIDE -v $CODE_DIR:$CODE_DIR_INSIDE $IMAGE
+docker run --name $CTNRNAME -it -d --rm --network=host --device=/dev/kfd --device=/dev/dri --ipc=host --shm-size 16G --group-add video --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --user $(id -u):$(id -g) -w $CODE_DIR_INSIDE -v $CODE_DIR:$CODE_DIR_INSIDE $IMAGE
 
 # Preparing temporary folder for training
 TRAIN_DIR_NAME=dashboard_train_dir
