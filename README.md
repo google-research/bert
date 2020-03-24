@@ -1,5 +1,31 @@
 # BERT
 
+## AMD Modifications
+
+This BERT repository is a fork from the original [BERT repository by Google](https://github.com/google-research/bert). The following modification has been made to the code.
+
+* Added a one file test script to verify that the code works in AMD ROCm;
+* Added code to enable Horovod scaling in pre-training, and corresponding script to run
+the pre-training on a cluster.
+
+### A. One file test script
+
+This one file test script is to demonstrate and verify that the original BERT model can 
+be run under AMD ROCm without any modification. It performs a quick pre-training run
+in a ROCm TensorFlow docker image.
+
+To run this script, do
+```shellscript
+scripts/run_model_in_rocm_docker.sh
+```
+### B. Horovod support
+
+Horovod scaling is enabled in the pre-training code. To use the Horovod scaling,
+please run `pre_training.py` with the `--use_horovod` commandline options set to `True`.
+If left unset, the pre-training defaults to the original code without Horovod.
+
+## Below is the original Google README
+
 **\*\*\*\*\* New March 11th, 2020: Smaller BERT Models \*\*\*\*\***
 
 This is a release of 24 smaller BERT models (English only, uncased, trained with WordPiece masking) referenced in [Well-Read Students Learn Better: On the Importance of Pre-training Compact Models](https://arxiv.org/abs/1908.08962).
