@@ -40,9 +40,9 @@ def create_optimizer(loss, init_lr, num_train_steps, num_warmup_steps, use_tpu, 
       end_learning_rate=0.0,
       power=1.0,
       cycle=False)
-  # if use_hvd:
-  #   # May want to scale learning rate by number of GPUs
-  #   learning_rate *= hvd.size()
+  if use_hvd:
+    # May want to scale learning rate by number of GPUs
+    learning_rate *= hvd.size()
 
   # Implements linear warmup. I.e., if global_step < num_warmup_steps, the
   # learning rate will be `global_step/num_warmup_steps * init_lr`.
@@ -89,6 +89,7 @@ def create_optimizer(loss, init_lr, num_train_steps, num_warmup_steps, use_tpu, 
     # Use standard TF gradients
     grads = tf.gradients(loss, tvars)
 
+  # This is how the model was pre-trained.
   (grads, _) = tf.clip_by_global_norm(grads, clip_norm=1.0)
   train_op = optimizer.apply_gradients(zip(grads, tvars), global_step=global_step)
 

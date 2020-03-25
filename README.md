@@ -18,11 +18,24 @@ To run this script, do
 ```shellscript
 scripts/run_model_in_rocm_docker.sh
 ```
+
+Because of the size of BERT model, you will need a GPU with 16GB or more memory to run
+the BERT model (e.g., Radeon VII, Radeon Instinct MI-50, or above). 
+
 ### B. Horovod support
 
 Horovod scaling is enabled in the pre-training code. To use the Horovod scaling,
 please run `pre_training.py` with the `--use_horovod` commandline options set to `True`.
 If left unset, the pre-training defaults to the original code without Horovod.
+
+There is a one file test script to demonstrate the Horovod support similar to above.
+However, the current public ROCm docker image does not include Horovod yet. So this
+script is provided for future reference here.
+
+To run this script, do
+```shellscript
+scripts/run_model_in_rocm_hvd_docker.sh
+```
 
 ## Below is the original Google README
 
