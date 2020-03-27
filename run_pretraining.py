@@ -113,6 +113,8 @@ flags.DEFINE_integer(
     
 flags.DEFINE_bool("use_horovod", False, "Whether to use Horovod.")
 
+flags.DEFINE_string("optimizer_type", "adam", "Optimizer used for training - adam (default) or lamb")
+
 
 def model_fn_builder(bert_config, init_checkpoint, learning_rate,
                      num_train_steps, num_warmup_steps, use_tpu,
@@ -183,7 +185,7 @@ def model_fn_builder(bert_config, init_checkpoint, learning_rate,
     output_spec = None
     if mode == tf.estimator.ModeKeys.TRAIN:
       train_op = optimization.create_optimizer(
-          total_loss, learning_rate, num_train_steps, num_warmup_steps, use_tpu, use_hvd)
+          total_loss, learning_rate, num_train_steps, num_warmup_steps, use_tpu, use_hvd, FLAGS.optimizer_type)
 
       output_spec = tf.contrib.tpu.TPUEstimatorSpec(
           mode=mode,
