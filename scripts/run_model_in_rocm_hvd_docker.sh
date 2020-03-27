@@ -5,7 +5,13 @@ MODEL="BERT-Large"
 IMAGE="rocm/tensorflow:rocm3.1-tf1.15-dev"
 
 # Print a message
-echo "This script will run the $MODEL model in a ROCm container."
+echo -n "This script will run the $MODEL model in a ROCm container. "
+echo "This is done with multi-GPU using Horovod."
+echo -n "The current default ROCm image does not support Horovod yet, "
+echo "so this code is provided here for future reference."
+
+exit 0
+
 echo "Below is what it will do:"
 echo "  1. Pull the latest ROCm docker image;"
 echo "  2. Prepare a sample traing data set in a temporary directory;"
@@ -98,11 +104,19 @@ LEARNING_RATE=2e-5
 # export HIP_VISIBLE_DEVICES=0 # choose gpu
 # run pretraining
 docker exec $CTNRNAME \
+mpirun -np 2 \
+  -H localhost:2 \
+  -bind-to none -map-by slot \
+  -x NCCL_DEBUG=INFO \
+  -x HSA_FORCE_FINE_GRAIN_PCIE=1 \
+  -x LD_LIBRARY_PATH -x PATH \
+  -mca pml ob1 -mca btl ^openib \
 python3 $CODE_DIR_INSIDE/run_pretraining.py \
   --input_file=$TRAIN_DIR_INSIDE/$DATA_TFRECORD \
   --output_dir=$TRAIN_DIR_INSIDE/$CUR_TRAINING \
   --do_train=True \
   --do_eval=True \
+  --user_horovod=True \
   --bert_config_file=$TRAIN_DIR_INSIDE/bert_config.json \
   --train_batch_size=$BATCH \
   --max_seq_length=$SEQ \
