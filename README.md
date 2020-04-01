@@ -19,6 +19,12 @@ To run this script, do
 scripts/run_model_in_rocm_docker.sh
 ```
 
+A few parameters in the script may be easily changed for different configuration.
+Those includes:
+* The model used (bert_large or bert_base),
+* The sequence length, and
+* The batch size.
+
 Because of the size of BERT model, you will need a GPU with 16GB or more memory to run
 the BERT model (e.g., Radeon VII, Radeon Instinct MI-50, or above). 
 
@@ -36,6 +42,10 @@ To run this script, do
 ```shellscript
 scripts/run_model_in_rocm_hvd_docker.sh
 ```
+
+The same parameters may be modified in this script as in the previous script file.
+In additional, this parameter can be adjusted:
+* The number of GPUs used.
 
 ## Below is the original Google README
 

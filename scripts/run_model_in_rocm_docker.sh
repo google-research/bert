@@ -1,7 +1,14 @@
 #!/bin/bash
 
-MODEL="BERT-Large"
-#IMAGE="rocm/tensorflow:latest"
+# The following may be modified
+# Model can be "bert_large" or "bert_base"
+MODEL="bert_large"
+# Sequence length can be 128, 256, 512, or other number of choice
+SEQ=128
+# Batch size can be anything that fits the GPU
+BATCH=8
+
+# Container image used
 IMAGE="rocm/tensorflow:rocm3.1-tf1.15-dev"
 
 # Print a message
@@ -35,6 +42,8 @@ docker inspect -f '{{.State.Running}}' $CTNRNAME
 if [ $? -eq 0 ]; then
     echo -n "Container $CTNRNAME is running. Stopping first ... "
     docker stop $CTNRNAME
+else
+    echo "An \"Error\" message here is normal. It just indicates that the container is not currently running (as expected)."
 fi
 echo "Starting $CTNRNAME"
 docker run --name $CTNRNAME -it -d --rm --network=host --device=/dev/kfd --device=/dev/dri --ipc=host --shm-size 16G --group-add video --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --user $(id -u):$(id -g) -w $CODE_DIR_INSIDE -v $CODE_DIR:$CODE_DIR_INSIDE $IMAGE
@@ -47,7 +56,7 @@ mkdir -p $TRAIN_DIR
 TRAIN_DIR_INSIDE=$CODE_DIR_INSIDE/$TRAIN_DIR_NAME
 
 # Copy the configuration file and vocab file
-MODEL_CONFIG_DIR=$CODE_DIR/configs/bert_large
+MODEL_CONFIG_DIR=$CODE_DIR/configs/$MODEL
 cp $MODEL_CONFIG_DIR/vocab.txt $TRAIN_DIR/vocab.txt
 cp $MODEL_CONFIG_DIR/bert_config.json $TRAIN_DIR/bert_config.json
 
@@ -59,7 +68,6 @@ echo "=== Preparing training data ==="
 DATA_SOURCE_FILE_PATH=sample_text.txt
 DATA_SOURCE_NAME=$(basename "$DATA_SOURCE_FILE_PATH")
 
-SEQ=128
 DATA_TFRECORD=${DATA_SOURCE_NAME}_seq${SEQ}.tfrecord
 
 # calculate max prediction per seq
@@ -92,7 +100,6 @@ mkdir -p $TRAIN_DIR/$CUR_TRAINING
 
 TRAIN_STEPS=200
 WARMUP_STEPS=50
-BATCH=8
 LEARNING_RATE=2e-5
 
 # export HIP_VISIBLE_DEVICES=0 # choose gpu

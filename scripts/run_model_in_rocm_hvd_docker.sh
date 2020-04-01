@@ -1,17 +1,21 @@
 #!/bin/bash
 
-MODEL="BERT-Large"
-#IMAGE="rocm/tensorflow:latest"
-IMAGE="rocm/tensorflow:rocm3.1-tf1.15-dev"
+# The following may be modified
+# Model can be "bert_large" or "bert_base"
+MODEL="bert_large"
+# Sequence length can be 128, 256, 512, or other number of choice
+SEQ=128
+# Batch size can be anything that fits the GPU
+BATCH=8
+# NP is the number of GPUs used. Set to equal or less than the number of GPUs on system.
+NP=2
+
+# Container image used
+IMAGE="rocm/tensorflow:rocm3.1-tf1.15-ofed4.6-openmpi4.0.0-horovod"
 
 # Print a message
-echo -n "This script will run the $MODEL model in a ROCm container. "
+echo "This script will run the $MODEL model in a ROCm container. "
 echo "This is done with multi-GPU using Horovod."
-echo -n "The current default ROCm image does not support Horovod yet, "
-echo "so this code is provided here for future reference."
-
-exit 0
-
 echo "Below is what it will do:"
 echo "  1. Pull the latest ROCm docker image;"
 echo "  2. Prepare a sample traing data set in a temporary directory;"
@@ -41,6 +45,8 @@ docker inspect -f '{{.State.Running}}' $CTNRNAME
 if [ $? -eq 0 ]; then
     echo -n "Container $CTNRNAME is running. Stopping first ... "
     docker stop $CTNRNAME
+else
+    echo "An \"Error\" message here is normal. It just indicates that the container is not currently running (as expected)."
 fi
 echo "Starting $CTNRNAME"
 docker run --name $CTNRNAME -it -d --rm --network=host --device=/dev/kfd --device=/dev/dri --ipc=host --shm-size 16G --group-add video --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --user $(id -u):$(id -g) -w $CODE_DIR_INSIDE -v $CODE_DIR:$CODE_DIR_INSIDE $IMAGE
@@ -53,7 +59,7 @@ mkdir -p $TRAIN_DIR
 TRAIN_DIR_INSIDE=$CODE_DIR_INSIDE/$TRAIN_DIR_NAME
 
 # Copy the configuration file and vocab file
-MODEL_CONFIG_DIR=$CODE_DIR/configs/bert_large
+MODEL_CONFIG_DIR=$CODE_DIR/configs/$MODEL
 cp $MODEL_CONFIG_DIR/vocab.txt $TRAIN_DIR/vocab.txt
 cp $MODEL_CONFIG_DIR/bert_config.json $TRAIN_DIR/bert_config.json
 
@@ -65,7 +71,6 @@ echo "=== Preparing training data ==="
 DATA_SOURCE_FILE_PATH=sample_text.txt
 DATA_SOURCE_NAME=$(basename "$DATA_SOURCE_FILE_PATH")
 
-SEQ=128
 DATA_TFRECORD=${DATA_SOURCE_NAME}_seq${SEQ}.tfrecord
 
 # calculate max prediction per seq
@@ -98,14 +103,13 @@ mkdir -p $TRAIN_DIR/$CUR_TRAINING
 
 TRAIN_STEPS=200
 WARMUP_STEPS=50
-BATCH=8
 LEARNING_RATE=2e-5
 
 # export HIP_VISIBLE_DEVICES=0 # choose gpu
 # run pretraining
 docker exec $CTNRNAME \
-mpirun -np 2 \
-  -H localhost:2 \
+mpirun -np $NP \
+  -H localhost:$NP \
   -bind-to none -map-by slot \
   -x NCCL_DEBUG=INFO \
   -x HSA_FORCE_FINE_GRAIN_PCIE=1 \
@@ -116,7 +120,7 @@ python3 $CODE_DIR_INSIDE/run_pretraining.py \
   --output_dir=$TRAIN_DIR_INSIDE/$CUR_TRAINING \
   --do_train=True \
   --do_eval=True \
-  --user_horovod=True \
+  --use_horovod=True \
   --bert_config_file=$TRAIN_DIR_INSIDE/bert_config.json \
   --train_batch_size=$BATCH \
   --max_seq_length=$SEQ \
