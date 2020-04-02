@@ -41,7 +41,7 @@ class BertConfig(object):
                hidden_dropout_prob=0.1,
                attention_probs_dropout_prob=0.1,
                max_position_embeddings=512,
-               type_vocab_size=16,
+               type_vocab_size=2,
                initializer_range=0.02):
     """Constructs BertConfig.
 
@@ -428,7 +428,7 @@ def embedding_lookup(input_ids,
 def embedding_postprocessor(input_tensor,
                             use_token_type=False,
                             token_type_ids=None,
-                            token_type_vocab_size=16,
+                            token_type_vocab_size=2,
                             token_type_embedding_name="token_type_embeddings",
                             use_position_embeddings=True,
                             position_embedding_name="position_embeddings",
