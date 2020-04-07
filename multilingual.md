@@ -219,7 +219,7 @@ chosen because they are the top 100 languages with the largest Wikipedias:
 |ceb	|Cebuano	|	|
 |ce	| Chechen	|	|
 |zh | Chinese (Simplified)	|zh-CN	|
-|zh	|Chinese (Traditional)	|zh-TW, zh-HK, zh-MO	|
+|zh-tw	|Chinese (Traditional)	| zh-HK, zh-MO	|
 |cv	|Chuvash	|	|
 |hr	|Croatian	|	|
 |cs	|Czech	|	|
