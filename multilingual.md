@@ -196,108 +196,111 @@ any ambiguity introduced by stripping accent markers.
 The multilingual model supports the following languages. These languages were
 chosen because they are the top 100 languages with the largest Wikipedias:
 
-*   Afrikaans
-*   Albanian
-*   Arabic
-*   Aragonese
-*   Armenian
-*   Asturian
-*   Azerbaijani
-*   Bashkir
-*   Basque
-*   Bavarian
-*   Belarusian
-*   Bengali
-*   Bishnupriya Manipuri
-*   Bosnian
-*   Breton
-*   Bulgarian
-*   Burmese
-*   Catalan
-*   Cebuano
-*   Chechen
-*   Chinese (Simplified)
-*   Chinese (Traditional)
-*   Chuvash
-*   Croatian
-*   Czech
-*   Danish
-*   Dutch
-*   English
-*   Estonian
-*   Finnish
-*   French
-*   Galician
-*   Georgian
-*   German
-*   Greek
-*   Gujarati
-*   Haitian
-*   Hebrew
-*   Hindi
-*   Hungarian
-*   Icelandic
-*   Ido
-*   Indonesian
-*   Irish
-*   Italian
-*   Japanese
-*   Javanese
-*   Kannada
-*   Kazakh
-*   Kirghiz
-*   Korean
-*   Latin
-*   Latvian
-*   Lithuanian
-*   Lombard
-*   Low Saxon
-*   Luxembourgish
-*   Macedonian
-*   Malagasy
-*   Malay
-*   Malayalam
-*   Marathi
-*   Minangkabau
-*   Nepali
-*   Newar
-*   Norwegian (Bokmal)
-*   Norwegian (Nynorsk)
-*   Occitan
-*   Persian (Farsi)
-*   Piedmontese
-*   Polish
-*   Portuguese
-*   Punjabi
-*   Romanian
-*   Russian
-*   Scots
-*   Serbian
-*   Serbo-Croatian
-*   Sicilian
-*   Slovak
-*   Slovenian
-*   South Azerbaijani
-*   Spanish
-*   Sundanese
-*   Swahili
-*   Swedish
-*   Tagalog
-*   Tajik
-*   Tamil
-*   Tatar
-*   Telugu
-*   Turkish
-*   Ukrainian
-*   Urdu
-*   Uzbek
-*   Vietnamese
-*   Volapük
-*   Waray-Waray
-*   Welsh
-*   West Frisian
-*   Western Punjabi
-*   Yoruba
+| Wikipedia        | Name           | Notes  |
+| ------------- |-------------| -----|
+|af	|Afrikaans	|	|
+|sq	|Albanian	|	|
+|ar	|Arabic	|	|
+|an	|Aragonese	|	|
+|hy	|Armenian	|	|
+|ast	|Asturian	|	|
+|az	|Azerbaijani	|	|
+|ba	|Bashkir	|	|
+|eu	|Basque	|	|
+|bar	|Bavarian	|	|
+|be	|Belarusian	|	|
+|bn	|Bengali	|	|
+|bpy	|Bishnupriya Manipuri	|	|
+|bs	|Bosnian	|	|
+|br	|Breton	|	|
+|bg	|Bulgarian	|	|
+|my	|Burmese	|	|
+|ca	|Catalan	|	|
+|ceb	|Cebuano	|	|
+|ce	| Chechen	|	|
+|zh | Chinese (Simplified)	|zh-CN	|
+|zh-tw	|Chinese (Traditional)	| zh-HK, zh-MO	|
+|cv	|Chuvash	|	|
+|hr	|Croatian	|	|
+|cs	|Czech	|	|
+|da	|Danish	|	|
+|nl	|Dutch	|	|
+|en	|English	|	|
+|et	|Estonian	|	|
+|fi	|Finnish	|	|
+|fr	|French	|	|
+|gl	|Galician	|	|
+|ka	|Georgian	|	|
+|de	|German	|	|
+|el	|Greek	|	|
+|gu	|Gujarati	|	|
+|ht	|Haitian	|	|
+|he |Hebrew	| Previously iw	|
+|hi	|Hindi	|	|
+|hu	|Hungarian	|	|
+|is	|Icelandic	|	|
+|io	|Ido	|	|
+|id	|Indonesian	| Previously in |
+|ga	|Irish	|	|
+|it	|Italian	|	|
+|ja	|Japanese	|	|
+|jv	|Javanese	|  Previously jw |
+|kn	|Kannada	|	|
+|kk	|Kazakh	|	|
+|ky	|Kirghiz	|	|
+|ko	|Korean	|	|
+|la	|Latin	|	|
+|lv	|Latvian	|	|
+|lt	|Lithuanian	|	|
+|lmo	|Lombard	|	|
+|nds	|Low Saxon	|	|
+|lb	|Luxembourgish	|	|
+|mk	|Macedonian	|	|
+|mg	|Malagasy	|	|
+|ms	|Malay	|	|
+|ml	|Malayalam	|	|
+|mn	|Mongolian	| in **Multilingual Cased (New)** only |
+|mr	|Marathi	|	|
+|min	|Minangkabau	|	|
+|ne	|Nepali	|	|
+|new	|Newar	|	|
+|nb |Norwegian (Bokmal)	|	Also no |
+|nn	|Norwegian (Nynorsk)	|   |
+|oc	|Occitan	|	|
+|fa	|Persian (Farsi)	|	|
+|pms	|Piedmontese	|	|
+|pl	|Polish	|	|
+|pt	|Portuguese	|	|
+|pa	|Punjabi	|	|
+|ro	|Romanian	|	|
+|ru	|Russian	|	|
+|sco	|Scots	|	|
+|sr	|Serbian	|	|
+|sh	|Serbo-Croatian	|	|
+|scn	|Sicilian	|	|
+|sk	|Slovak	|	|
+|sl	|Slovenian	|	|
+|azb	|South Azerbaijani	|	|
+|es	|Spanish	|	|
+|su	|Sundanese	|	|
+|sw	|Swahili	|	|
+|sv	|Swedish	|	|
+|tl	|Tagalog	| Macrolanguage fil	|
+|tg	|Tajik	|	|
+|ta	|Tamil	|	|
+|tt	|Tatar	|	|
+|te	|Telugu	|	|
+|th	|Thai	| in **Multilingual Cased (New)** only |
+|tr	|Turkish	|	|
+|uk	|Ukrainian	|	|
+|ur	|Urdu	|	|
+|uz	|Uzbek	|	|
+|vi	|Vietnamese	|	|
+|vo	|Volapük	|	|
+|war	|Waray-Waray	|	|
+|cy	|Welsh	|	|
+|fy	|West Frisian	|	Macrolanguage fry |
+|lah |Western Punjabi	| Macrolanguage pan |
+|yo	|Yoruba	|	|
 
-The **Multilingual Cased (New)** release contains additionally **Thai** and
-**Mongolian**, which were not included in the original release.
+
