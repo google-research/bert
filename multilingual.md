@@ -290,7 +290,7 @@ chosen because they are the top 100 languages with the largest Wikipedias:
 |ta	|Tamil	|	|
 |tt	|Tatar	|	|
 |te	|Telugu	|	|
-|th	|Telugu	| in **Multilingual Cased (New)** only |
+|th	|Thai	| in **Multilingual Cased (New)** only |
 |tr	|Turkish	|	|
 |uk	|Ukrainian	|	|
 |ur	|Urdu	|	|
