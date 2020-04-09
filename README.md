@@ -47,6 +47,13 @@ The same parameters may be modified in this script as in the previous script fil
 In additional, this parameter can be adjusted:
 * The number of GPUs used.
 
+### C. LAMB Optimizer
+
+LAMB “Layer-wise Adaptive Moments optimizer for Batch training” is implemented as 
+an optional feature. To use the LAMB optimizer, please run `pre_training.py` with
+the `--optimizer_type` commandline options set to `lamb`. 
+If left unset or set to `adam`, the pre-training defaults to the ADAM optimizer.
+
 ## Below is the original Google README
 
 **\*\*\*\*\* New March 11th, 2020: Smaller BERT Models \*\*\*\*\***
