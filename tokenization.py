@@ -226,7 +226,8 @@ class BasicTokenizer(object):
       if cat == "Mn":
         continue
       output.append(char)
-    return "".join(output)
+    res = "".join(output)
+    return unicodedata.normalize("NFC", res)
 
   def _run_split_on_punc(self, text):
     """Splits punctuation on a piece of text."""
