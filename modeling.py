@@ -574,7 +574,7 @@ def attention_layer(from_tensor,
   This is an implementation of multi-headed attention based on "Attention
   is all you Need". If `from_tensor` and `to_tensor` are the same, then
   this is self-attention. Each timestep in `from_tensor` attends to the
-  corresponding sequence in `to_tensor`, and returns a fixed-with vector.
+  corresponding sequence in `to_tensor`, and returns a fixed-width vector.
 
   This function first projects `from_tensor` into a "query" tensor and
   `to_tensor` into "key" and "value" tensors. These are (effectively) a list
