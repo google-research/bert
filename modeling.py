@@ -49,23 +49,16 @@ class BertConfig(object):
       vocab_size: Vocabulary size of `inputs_ids` in `BertModel`.
       hidden_size: Size of the encoder layers and the pooler layer.
       num_hidden_layers: Number of hidden layers in the Transformer encoder.
-      num_attention_heads: Number of attention heads for each attention layer in
-        the Transformer encoder.
-      intermediate_size: The size of the "intermediate" (i.e., feed-forward)
-        layer in the Transformer encoder.
-      hidden_act: The non-linear activation function (function or string) in the
-        encoder and pooler.
+      num_attention_heads: Number of attention heads for each attention layer in the Transformer encoder.
+      intermediate_size: The size of the "intermediate" (i.e., feed-forward) layer in the Transformer encoder.
+      hidden_act: The non-linear activation function (function or string) in the encoder and pooler.
       hidden_dropout_prob: The dropout probability for all fully connected
         layers in the embeddings, encoder, and pooler.
-      attention_probs_dropout_prob: The dropout ratio for the attention
-        probabilities.
-      max_position_embeddings: The maximum sequence length that this model might
-        ever be used with. Typically set this to something large just in case
-        (e.g., 512 or 1024 or 2048).
-      type_vocab_size: The vocabulary size of the `token_type_ids` passed into
-        `BertModel`.
-      initializer_range: The stdev of the truncated_normal_initializer for
-        initializing all weight matrices.
+      attention_probs_dropout_prob: The dropout ratio for the attention probabilities.
+      max_position_embeddings: The maximum sequence length that this model might ever be used with.
+        Typically set this to something large just in case (e.g., 512 or 1024 or 2048).
+      type_vocab_size: The vocabulary size of the `token_type_ids` passed into `BertModel`.
+      initializer_range: The stdev of the truncated_normal_initializer for initializing all weight matrices.
     """
     self.vocab_size = vocab_size
     self.hidden_size = hidden_size
@@ -83,16 +76,18 @@ class BertConfig(object):
   def from_dict(cls, json_object):
     """Constructs a `BertConfig` from a Python dictionary of parameters."""
     config = BertConfig(vocab_size=None)
-    for (key, value) in six.iteritems(json_object):
-      config.__dict__[key] = value
+    # for (key, value) in six.iteritems(json_object):
+    # python2, dict.items返回数组，six.iteritems返回生成器. python3, dict.items返回生成器.
+    for (key, value) in dict.items(json_object):
+        config.__dict__[key] = value  # 实例的dict属性
     return config
 
   @classmethod
   def from_json_file(cls, json_file):
     """Constructs a `BertConfig` from a json file of parameters."""
     with tf.gfile.GFile(json_file, "r") as reader:
-      text = reader.read()
-    return cls.from_dict(json.loads(text))
+        text = reader.read()  # str
+    return cls.from_dict(json.loads(text))  # json.loads(text) -> dict object
 
   def to_dict(self):
     """Serializes this instance to a Python dictionary."""
@@ -101,7 +96,12 @@ class BertConfig(object):
 
   def to_json_string(self):
     """Serializes this instance to a JSON string."""
-    return json.dumps(self.to_dict(), indent=2, sort_keys=True) + "\n"
+    return json.dumps(self.to_dict(), indent=2, sort_keys=True) + "\n"  # return str, indent=2表示缩进2格
+
+
+# if __name__ == '__main__':
+#     jason_path = './uncased_L-12_H-768_A-12/bert_config.json'
+#     res = BertConfig.from_json_file(jason_path)
 
 
 class BertModel(object):
@@ -115,11 +115,11 @@ class BertModel(object):
   input_mask = tf.constant([[1, 1, 1], [1, 1, 0]])
   token_type_ids = tf.constant([[0, 0, 1], [0, 2, 0]])
 
-  config = modeling.BertConfig(vocab_size=32000, hidden_size=512,
-    num_hidden_layers=8, num_attention_heads=6, intermediate_size=1024)
+  config = modeling.BertConfig(vocab_size=32000, hidden_size=512, num_hidden_layers=8,
+    num_attention_heads=6, intermediate_size=1024)
 
-  model = modeling.BertModel(config=config, is_training=True,
-    input_ids=input_ids, input_mask=input_mask, token_type_ids=token_type_ids)
+  model = modeling.BertModel(config=config, is_training=True, input_ids=input_ids,
+    input_mask=input_mask, token_type_ids=token_type_ids)
 
   label_embeddings = tf.get_variable(...)
   pooled_output = model.get_pooled_output()
@@ -140,18 +140,16 @@ class BertModel(object):
 
     Args:
       config: `BertConfig` instance.
-      is_training: bool. true for training model, false for eval model. Controls
-        whether dropout will be applied.
+      is_training: bool. true for training model, false for eval model. Controls whether dropout will be applied.
       input_ids: int32 Tensor of shape [batch_size, seq_length].
       input_mask: (optional) int32 Tensor of shape [batch_size, seq_length].
       token_type_ids: (optional) int32 Tensor of shape [batch_size, seq_length].
-      use_one_hot_embeddings: (optional) bool. Whether to use one-hot word
-        embeddings or tf.embedding_lookup() for the word embeddings.
+      use_one_hot_embeddings: (optional) bool. Whether to use one-hot word embeddings or
+        tf.embedding_lookup() for the word embeddings.
       scope: (optional) variable scope. Defaults to "bert".
 
     Raises:
-      ValueError: The config is invalid or one of the input tensor shapes
-        is invalid.
+      ValueError: The config is invalid or one of the input tensor shapes is invalid.
     """
     config = copy.deepcopy(config)
     if not is_training:
@@ -374,7 +372,7 @@ def layer_norm_and_dropout(input_tensor, dropout_prob, name=None):
 
 def create_initializer(initializer_range=0.02):
   """Creates a `truncated_normal_initializer` with the given range."""
-  return tf.truncated_normal_initializer(stddev=initializer_range)
+  return tf.truncated_normal_initializer(stddev=initializer_range)  # 截断正太分布，标准差为0.02
 
 
 def embedding_lookup(input_ids,
@@ -384,33 +382,25 @@ def embedding_lookup(input_ids,
                      word_embedding_name="word_embeddings",
                      use_one_hot_embeddings=False):
   """Looks up words embeddings for id tensor.
-
   Args:
-    input_ids: int32 Tensor of shape [batch_size, seq_length] containing word
-      ids.
+    input_ids: int32 Tensor of shape [batch_size, seq_length] containing word ids.  # [2, 3]
     vocab_size: int. Size of the embedding vocabulary.
     embedding_size: int. Width of the word embeddings.
     initializer_range: float. Embedding initialization range.
     word_embedding_name: string. Name of the embedding table.
-    use_one_hot_embeddings: bool. If True, use one-hot method for word
-      embeddings. If False, use `tf.gather()`.
+    use_one_hot_embeddings: bool. If True, use one-hot method for word embeddings. If False, use `tf.gather()`.
 
   Returns:
     float Tensor of shape [batch_size, seq_length, embedding_size].
   """
-  # This function assumes that the input is of shape [batch_size, seq_length,
-  # num_inputs].
-  #
-  # If the input is a 2D tensor of shape [batch_size, seq_length], we
-  # reshape to [batch_size, seq_length, 1].
+  # This function assumes that the input is of shape [batch_size, seq_length, num_inputs].
+  # If the input is a 2D tensor of shape [batch_size, seq_length], we reshape to [batch_size, seq_length, 1].
   if input_ids.shape.ndims == 2:
     input_ids = tf.expand_dims(input_ids, axis=[-1])
-
   embedding_table = tf.get_variable(
       name=word_embedding_name,
       shape=[vocab_size, embedding_size],
-      initializer=create_initializer(initializer_range))
-
+      initializer=create_initializer(initializer_range))  # (32000, 128)
   flat_input_ids = tf.reshape(input_ids, [-1])
   if use_one_hot_embeddings:
     one_hot_input_ids = tf.one_hot(flat_input_ids, depth=vocab_size)
@@ -420,8 +410,7 @@ def embedding_lookup(input_ids,
 
   input_shape = get_shape_list(input_ids)
 
-  output = tf.reshape(output,
-                      input_shape[0:-1] + [input_shape[-1] * embedding_size])
+  output = tf.reshape(output, input_shape[0:-1] + [input_shape[-1] * embedding_size])  # (2, 3, 128)
   return (output, embedding_table)
 
 
@@ -984,3 +973,65 @@ def assert_rank(tensor, expected_rank, name=None):
         "For the tensor `%s` in scope `%s`, the actual rank "
         "`%d` (shape = %s) is not equal to the expected rank `%s`" %
         (name, scope_name, actual_rank, str(tensor.shape), str(expected_rank)))
+
+
+if __name__ == '__main__':
+    # vocab_size = 32000
+    # input_ids = tf.constant([[31, 51, 99], [15, 5, 0]])
+    # with tf.Session() as sess:
+    #     tf.global_variables_initializer().run()
+    #     embedding_lookup(vocab_size=vocab_size, input_ids=input_ids)
+
+    # test
+
+    VOCAB_SIZE = 2000  # 32000
+    EMBEDDING_SIZE = 5  # 128
+    USE_ONE_HOT_EMBEDDINGS = True
+
+    chars_input = tf.placeholder(dtype=tf.int32, shape=[None, None])
+    # 维度转换， [batch_size, seq_length, 1]
+    input_ids = chars_input
+    if chars_input.shape.ndims == 2:
+        input_ids = tf.expand_dims(chars_input, axis=[-1])
+
+    flat_input_ids = tf.reshape(input_ids, [-1])  # 1-D
+    embedding_table = tf.get_variable(name="word_embeddings",
+                                      shape=[VOCAB_SIZE, EMBEDDING_SIZE],
+                                      initializer=tf.truncated_normal_initializer(stddev=0.02))  # shape [4680, 100]
+    if USE_ONE_HOT_EMBEDDINGS:
+        one_hot_input_ids = tf.one_hot(flat_input_ids, depth=VOCAB_SIZE)  # len(flat_input_ids) x VOCAB_SIZE
+        output = tf.matmul(one_hot_input_ids, embedding_table)
+    else:
+        output = tf.gather(embedding_table, flat_input_ids)  # 类似于 embedding_lookup
+
+    input_shape = get_shape_list(input_ids)
+
+    with tf.Session() as sess:
+        tf.global_variables_initializer().run()
+        print(sess.run(input_shape, feed_dict={chars_input: [[31, 51, 99], [15, 5, 0]]}))
+
+    # input_ids,
+    # vocab_size,
+    # embedding_size = 128,
+    # initializer_range = 0.02,
+    # word_embedding_name = "word_embeddings",
+    # use_one_hot_embeddings = False
+    # if input_ids.shape.ndims == 2:
+    #     input_ids = tf.expand_dims(input_ids, axis=[-1])
+    # embedding_table = tf.get_variable(
+    #     name=word_embedding_name,
+    #     shape=[vocab_size, embedding_size],
+    #     initializer=create_initializer(initializer_range))  # (32000, 128)
+    # flat_input_ids = tf.reshape(input_ids, [-1])
+    # if use_one_hot_embeddings:
+    #     one_hot_input_ids = tf.one_hot(flat_input_ids, depth=vocab_size)
+    #     output = tf.matmul(one_hot_input_ids, embedding_table)
+    # else:
+    #     output = tf.gather(embedding_table, flat_input_ids)
+    #
+    # input_shape = get_shape_list(input_ids)
+    #
+    # output = tf.reshape(output, input_shape[0:-1] + [input_shape[-1] * embedding_size])  # (2, 3, 128)
+    # return (output, embedding_table)
+
+
