@@ -3,6 +3,7 @@
 # Ethan Add
 .idea/
 chinese_L-12_H-768_A-12/
+uncased_L-12_H-768_A-12/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
