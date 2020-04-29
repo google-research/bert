@@ -4,6 +4,7 @@
 .idea/
 chinese_L-12_H-768_A-12/
 uncased_L-12_H-768_A-12/
+temp/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
