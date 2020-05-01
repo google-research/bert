@@ -133,7 +133,7 @@ additionally inclues Thai and Mongolian.
 **It is recommended to use this version for developing multilingual models,
 especially on languages with non-Latin alphabets.**
 
-This does not require any code changes, and can be downloaded here:
+This does not require any code changes, and can be downloaded from here:
 
 *   **[`BERT-Base, Multilingual Cased`](https://storage.googleapis.com/bert_models/2018_11_23/multi_cased_L-12_H-768_A-12.zip)**:
     104 languages, 12-layer, 768-hidden, 12-heads, 110M parameters
