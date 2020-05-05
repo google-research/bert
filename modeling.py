@@ -212,7 +212,7 @@ class BertModel(object):
                     initializer_range=config.initializer_range,
                     do_return_all_layers=True)
 
-            self.sequence_output = self.all_encoder_layers[-1]
+            self.sequence_output = self.all_encoder_layers[-1]  # 最后一层
             # The "pooler" converts the encoded sequence tensor of shape
             # [batch_size, seq_length, hidden_size] to a tensor of shape
             # [batch_size, hidden_size]. This is necessary for segment-level
@@ -454,6 +454,7 @@ def embedding_postprocessor(input_tensor,
 
     output = input_tensor
 
+    # segment position
     if use_token_type:
         if token_type_ids is None:
             raise ValueError("`token_type_ids` must be specified if" "`use_token_type` is True.")
@@ -469,6 +470,7 @@ def embedding_postprocessor(input_tensor,
                                            [batch_size, seq_length, width])  # (2, 3, 128)
         output += token_type_embeddings
 
+    # position embedding
     if use_position_embeddings:
         assert_op = tf.assert_less_equal(seq_length, max_position_embeddings)
         with tf.control_dependencies([assert_op]):
@@ -506,6 +508,7 @@ def embedding_postprocessor(input_tensor,
 
 def create_attention_mask_from_input_mask(from_tensor, to_mask):
     """Create 3D attention mask from a 2D tensor mask.
+    每个样本都经过padding过程，在做self-attention的时候padding的部分不能attend到其他部分上
 
     Args:
       from_tensor: 2D or 3D Tensor of shape [batch_size, from_seq_length, ...].
@@ -573,20 +576,17 @@ def attention_layer(from_tensor,
     reshapes rather than actual separate tensors.
 
     Args:
-      from_tensor: float Tensor of shape [batch_size, from_seq_length,
-        from_width].
+      from_tensor: float Tensor of shape [batch_size, from_seq_length, from_width].
       to_tensor: float Tensor of shape [batch_size, to_seq_length, to_width].
-      attention_mask: (optional) int32 Tensor of shape [batch_size,
-        from_seq_length, to_seq_length]. The values should be 1 or 0. The
-        attention scores will effectively be set to -infinity for any positions in
-        the mask that are 0, and will be unchanged for positions that are 1.
+      attention_mask: (optional) int32 Tensor of shape [batch_size, from_seq_length, to_seq_length].
+        The values should be 1 or 0. The attention scores will effectively be set to -infinity
+        for any positions in the mask that are 0, and will be unchanged for positions that are 1.
       num_attention_heads: int. Number of attention heads.
       size_per_head: int. Size of each attention head.
       query_act: (optional) Activation function for the query transform.
       key_act: (optional) Activation function for the key transform.
       value_act: (optional) Activation function for the value transform.
-      attention_probs_dropout_prob: (optional) float. Dropout probability of the
-        attention probabilities.
+      attention_probs_dropout_prob: (optional) float. Dropout probability of the attention probabilities.
       initializer_range: float. Range of the weight initializer.
       do_return_2d_tensor: bool. If True, the output will be of shape [batch_size
         * from_seq_length, num_attention_heads * size_per_head]. If False, the
@@ -600,9 +600,8 @@ def attention_layer(from_tensor,
         of the 3D version of the `to_tensor`.
 
     Returns:
-      float Tensor of shape [batch_size, from_seq_length,
-        num_attention_heads * size_per_head]. (If `do_return_2d_tensor` is
-        true, this will be of shape [batch_size * from_seq_length,
+      float Tensor of shape [batch_size, from_seq_length, num_attention_heads * size_per_head].
+        (If `do_return_2d_tensor` is true, this will be of shape [batch_size * from_seq_length,
         num_attention_heads * size_per_head]).
 
     Raises:
@@ -642,9 +641,11 @@ def attention_layer(from_tensor,
     #   N = `num_attention_heads`
     #   H = `size_per_head`
 
-    from_tensor_2d = reshape_to_matrix(from_tensor)
-    to_tensor_2d = reshape_to_matrix(to_tensor)
+    # 把from_tensor和to_tensor压缩为2D张量
+    from_tensor_2d = reshape_to_matrix(from_tensor)  # [B*F, hidden_size]
+    to_tensor_2d = reshape_to_matrix(to_tensor)      # [B*T, hidden_size]
 
+    # 把 from_tensor输入到全连接层，得到query_layer
     # `query_layer` = [B*F, N*H]
     query_layer = tf.layers.dense(
         from_tensor_2d,
@@ -669,17 +670,18 @@ def attention_layer(from_tensor,
         name="value",
         kernel_initializer=create_initializer(initializer_range))
 
+    # query_layer转换成多头，[B*F, N*H]==>[B, F, N, H]==>[B, N, F, H]
     # `query_layer` = [B, N, F, H]
     query_layer = transpose_for_scores(query_layer, batch_size,
                                        num_attention_heads, from_seq_length,
                                        size_per_head)
 
+    # key_layer转成多头：[B*T, N*H] ==> [B, T, N, H] ==> [B, N, T, H]
     # `key_layer` = [B, N, T, H]
     key_layer = transpose_for_scores(key_layer, batch_size, num_attention_heads,
                                      to_seq_length, size_per_head)
 
-    # Take the dot product between "query" and "key" to get the raw
-    # attention scores.
+    # Take the dot product between "query" and "key" to get the raw attention scores.
     # `attention_scores` = [B, N, F, T]
     attention_scores = tf.matmul(query_layer, key_layer, transpose_b=True)
     attention_scores = tf.multiply(attention_scores,
@@ -970,21 +972,32 @@ def assert_rank(tensor, expected_rank, name=None):
 
 
 if __name__ == '__main__':
-    vocab_size = 32000
+    # vocab_size = 32000
+    # input_ids = tf.constant([[31, 51, 99], [15, 5, 0]])
+    # with tf.Session() as sess:
+    #     tf.global_variables_initializer().run()
+    #     output, embedding_table = embedding_lookup(vocab_size=vocab_size, input_ids=input_ids)
+    #     embedding_postprocessor(input_tensor=output,
+    #                             use_token_type=True,
+    #                             token_type_ids=[[0, 0, 1], [0, 2, 0]],
+    #                             token_type_vocab_size=16,
+    #                             token_type_embedding_name="token_type_embeddings",
+    #                             use_position_embeddings=True,
+    #                             position_embedding_name="position_embeddings",
+    #                             initializer_range=0.02,
+    #                             max_position_embeddings=512,
+    #                             dropout_prob=0.1)
+
     input_ids = tf.constant([[31, 51, 99], [15, 5, 0]])
-    with tf.Session() as sess:
-        tf.global_variables_initializer().run()
-        output, embedding_table = embedding_lookup(vocab_size=vocab_size, input_ids=input_ids)
-        embedding_postprocessor(input_tensor=output,
-                                use_token_type=True,
-                                token_type_ids=[[0, 0, 1], [0, 2, 0]],
-                                token_type_vocab_size=16,
-                                token_type_embedding_name="token_type_embeddings",
-                                use_position_embeddings=True,
-                                position_embedding_name="position_embeddings",
-                                initializer_range=0.02,
-                                max_position_embeddings=512,
-                                dropout_prob=0.1)
+    input_mask = tf.constant([[1, 1, 1], [1, 1, 0]])
+    token_type_ids = tf.constant([[0, 0, 1], [0, 2, 0]])
+
+    # config = BertConfig(vocab_size=32000, hidden_size=512, num_hidden_layers=8,
+    #                     num_attention_heads=6, intermediate_size=1024)
+
+    config = BertConfig(vocab_size=32000)
+    model = BertModel(config=config, is_training=True, input_ids=input_ids,
+                      input_mask=input_mask, token_type_ids=token_type_ids)
 
     # # test
     # VOCAB_SIZE = 20  # 32000

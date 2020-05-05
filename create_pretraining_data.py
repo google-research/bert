@@ -31,10 +31,10 @@ flags.DEFINE_string("input_file", './sample_text1.txt',
                     "Input raw text file (or comma-separated(逗号分隔) list of files).")
 
 flags.DEFINE_string(
-    "output_file", './sample_text.tfrecord',
+    "output_file", './sample_text1.tfrecord',
     "Output TF example file (or comma-separated list of files).")
 
-flags.DEFINE_string("vocab_file", './uncased_L-12_H-768_A-12/vocab.txt',
+flags.DEFINE_string("vocab_file", './chinese_L-12_H-768_A-12/vocab.txt',
                     "The vocabulary file that the BERT model was trained on.")
 
 flags.DEFINE_bool(
@@ -61,8 +61,7 @@ flags.DEFINE_float("masked_lm_prob", 0.15, "Masked LM probability.")  # token被
 
 flags.DEFINE_float(
     "short_seq_prob", 0.1,
-    "Probability of creating sequences which are shorter than the "
-    "maximum length.")  # 长度小于max_seq_length的样本比例
+    "Probability of creating sequences which are shorter than the maximum length.")  # 长度小于max_seq_length的样本比例
 
 
 class TrainingInstance(object):
@@ -188,9 +187,8 @@ def create_training_instances(input_files, tokenizer, max_seq_length,
     all_documents = [[]]  # 第一层表示document, 第二层表示一个document里面的句子
 
     # Input file format:
-    # (1) One sentence per line. These should ideally be actual sentences, not
-    # entire paragraphs or arbitrary spans(随机片段) of text. (Because we use the
-    # sentence boundaries for the "next sentence prediction" task).
+    # (1) One sentence per line. These should ideally be actual sentences, not entire paragraphs or
+    # arbitrary spans(随机片段) of text.(Because we use the sentence boundaries for the "next sentence prediction" task).
     # (2) Blank lines between documents. 不同文档之间用空行分割。
     # Document boundaries are needed so that the "next sentence prediction" task doesn't span between documents.
     for input_file in input_files:
@@ -210,7 +208,7 @@ def create_training_instances(input_files, tokenizer, max_seq_length,
 
     # Remove empty documents
     all_documents = [x for x in all_documents if x]
-    rng.shuffle(all_documents)
+    rng.shuffle(all_documents)  # 消息打乱
 
     vocab_words = list(tokenizer.vocab.keys())
     instances = []
@@ -450,7 +448,7 @@ def main(_):
     tf.logging.set_verbosity(tf.logging.INFO)
 
     tokenizer = tokenization.FullTokenizer(
-        vocab_file=FLAGS.vocab_file, do_lower_case=FLAGS.do_lower_case)  # 实例化
+        vocab_file=FLAGS.vocab_file, do_lower_case=FLAGS.do_lower_case)  # 实例化分词
 
     input_files = []  # ['.\\sample_text1.txt']
     for input_pattern in FLAGS.input_file.split(","):
@@ -458,7 +456,7 @@ def main(_):
 
     tf.logging.info("*** Reading from input files ***")
     for input_file in input_files:
-        tf.logging.info("  %s", input_file)  # 输出到面板??
+        tf.logging.info("  %s", input_file)
 
     rng = random.Random(FLAGS.random_seed)
     # 构造instances实例
@@ -482,3 +480,4 @@ if __name__ == "__main__":
     flags.mark_flag_as_required("output_file")
     flags.mark_flag_as_required("vocab_file")
     tf.app.run()  # 对应入口函数 main(_)
+

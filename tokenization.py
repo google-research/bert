@@ -78,6 +78,7 @@ def validate_case_matches_checkpoint(do_lower_case, init_checkpoint):
 def convert_to_unicode(text):
     """Converts `text` to Unicode (if it's not already), assuming utf-8 input."""
     if six.PY3:
+        # 返回当前运行环境是否为python3的boolean值
         if isinstance(text, str):
             return text
         elif isinstance(text, bytes):
@@ -120,10 +121,11 @@ def printable_text(text):
 
 def load_vocab(vocab_file):
     """Loads a vocabulary file into a dictionary."""
-    vocab = collections.OrderedDict()
+    vocab = collections.OrderedDict()  # OrderedDict([('[PAD]', 0), ('[unused1]', 1) ... ])
     index = 0
     with tf.gfile.GFile(vocab_file, "r") as reader:
         while True:
+            # .readline(), 读取文件的下一行，保留末尾的'\n'换行符
             token = convert_to_unicode(reader.readline())
             if not token:
                 break
@@ -163,19 +165,18 @@ class FullTokenizer(object):
 
     def __init__(self, vocab_file, do_lower_case=True):
         # 加载词表文件为字典形式
-        self.vocab = load_vocab(vocab_file)
+        self.vocab = load_vocab(vocab_file)   # OrderedDict([('[PAD]', 0), ('[unused1]', 1) ... ])
         self.inv_vocab = {v: k for k, v in self.vocab.items()}
         self.basic_tokenizer = BasicTokenizer(do_lower_case=do_lower_case)
         self.wordpiece_tokenizer = WordpieceTokenizer(vocab=self.vocab)
 
     def tokenize(self, text):
         split_tokens = []
-        # 调用BasicTokenizer粗粒度分词
+        # 调用BasicTokenizer粗粒度分词, ['我', '爱', '我', '的', '祖', '国']
         for token in self.basic_tokenizer.tokenize(text):
             # 调用WordpieceTokenizer细粒度分词
             for sub_token in self.wordpiece_tokenizer.tokenize(token):
                 split_tokens.append(sub_token)
-
         return split_tokens
 
     def convert_tokens_to_ids(self, tokens):
@@ -208,10 +209,10 @@ class BasicTokenizer(object):
         # and generally don't have any Chinese data in them (there are Chinese
         # characters in the vocabulary because Wikipedia does have some Chinese
         # words in the English Wikipedia.).
-        text = self._tokenize_chinese_chars(text)  # 中文支持
+        text = self._tokenize_chinese_chars(text)  # 中文处理， ' 我  爱  我  的  祖  国 '
 
         orig_tokens = whitespace_tokenize(text)
-        split_tokens = []
+        split_tokens = [] # [我，爱，我，的，祖，国]
         for token in orig_tokens:
             if self.do_lower_case:
                 token = token.lower()
@@ -223,13 +224,13 @@ class BasicTokenizer(object):
 
     def _run_strip_accents(self, text):
         """Strips accents from a piece of text."""
-        text = unicodedata.normalize("NFD", text)
+        text = unicodedata.normalize("NFD", text)  # 按照'NFD'标准化
         output = []
         for char in text:
             cat = unicodedata.category(char)
             # 去掉category为Mn, https://www.fileformat.info/info/unicode/category/Mn/list.htm
             if cat == "Mn":
-                continue
+                continue  # 'Mn', 标记，非间距
             output.append(char)
         return "".join(output)
 
@@ -314,18 +315,14 @@ class WordpieceTokenizer(object):
 
     def tokenize(self, text):
         """Tokenizes a piece of text into its word pieces.
-
         This uses a greedy longest-match-first algorithm to perform tokenization
         using the given vocabulary. # 使用贪心的最大正向匹配算法。
-
         For example:
           input = "unaffable"
           output = ["un", "##aff", "##able"]
-
         Args:
           text: A single token or whitespace separated tokens. This should have
             already been passed through `BasicTokenizer.
-
         Returns:
           A list of wordpiece tokens.
         """
@@ -370,6 +367,7 @@ def _is_whitespace(char):
     """Checks whether `chars` is a whitespace character."""
     # \t, \n, and \r are technically contorl characters but we treat them
     # as whitespace since they are generally considered as such.
+    # '\r' 回车
     if char == " " or char == "\t" or char == "\n" or char == "\r":
         return True
     cat = unicodedata.category(char)
@@ -404,3 +402,10 @@ def _is_punctuation(char):
     if cat.startswith("P"):
         return True
     return False
+
+
+# vocab_file = './chinese_L-12_H-768_A-12/vocab.txt'
+# tokenizer = FullTokenizer(vocab_file=vocab_file, do_lower_case=True)  # 实例化分词
+#
+# c = tokenizer.tokenize('But, wonderful to relate, not an irregular berrr.')
+# print(c)
