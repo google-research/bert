@@ -1,5 +1,11 @@
 # Initially taken from Github's Python gitignore file
 
+# Ethan Add
+.idea/
+chinese_L-12_H-768_A-12/
+uncased_L-12_H-768_A-12/
+temp/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
