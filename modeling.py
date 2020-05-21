@@ -346,8 +346,7 @@ def dropout(input_tensor, dropout_prob):
 
   Args:
     input_tensor: float Tensor.
-    dropout_prob: Python float. The probability of dropping out a value (NOT of
-      *keeping* a dimension as in `tf.nn.dropout`).
+    dropout_prob: Python float. The probability of dropping out a value.
 
   Returns:
     A version of `input_tensor` with dropout applied.
@@ -355,7 +354,7 @@ def dropout(input_tensor, dropout_prob):
   if dropout_prob is None or dropout_prob == 0.0:
     return input_tensor
 
-  output = tf.nn.dropout(input_tensor, 1.0 - dropout_prob)
+  output = tf.nn.dropout(input_tensor, rate=dropout_prob)
   return output
 
 
