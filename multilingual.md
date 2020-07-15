@@ -5,11 +5,11 @@ more single-language models, but we may release `BERT-Large` versions of these
 two in the future:
 
 *   **[`BERT-Base, Multilingual Cased (New, recommended)`](https://storage.googleapis.com/bert_models/2018_11_23/multi_cased_L-12_H-768_A-12.zip)**:
-    104 languages, 12-layer, 768-hidden, 12-heads, 110M parameters
+    104 languages, 12-layer, 768-hidden, 12-heads, 179M parameters
 *   **[`BERT-Base, Multilingual Uncased (Orig, not recommended)`](https://storage.googleapis.com/bert_models/2018_11_03/multilingual_L-12_H-768_A-12.zip)**:
-    102 languages, 12-layer, 768-hidden, 12-heads, 110M parameters
+    102 languages, 12-layer, 768-hidden, 12-heads, 168M parameters
 *   **[`BERT-Base, Chinese`](https://storage.googleapis.com/bert_models/2018_11_03/chinese_L-12_H-768_A-12.zip)**:
-    Chinese Simplified and Traditional, 12-layer, 768-hidden, 12-heads, 110M
+    Chinese Simplified and Traditional, 12-layer, 768-hidden, 12-heads, 103M
     parameters
 
 **The `Multilingual Cased (New)` model also fixes normalization issues in many
