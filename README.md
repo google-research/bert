@@ -36,7 +36,7 @@ For each task, we selected the best fine-tuning hyperparameters from the lists b
 
 If you use these models, please cite the following paper:
 
-```
+```bibtex
 @article{turc2019,
   title={Well-Read Students Learn Better: On the Importance of Pre-training Compact Models},
   author={Turc, Iulia and Chang, Ming-Wei and Lee, Kenton and Toutanova, Kristina},
