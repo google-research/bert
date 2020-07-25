@@ -152,7 +152,7 @@ NLP researchers from HuggingFace made a
 which is compatible with our pre-trained checkpoints and is able to reproduce
 our results. Sosuke Kobayashi also made a
 [Chainer version of BERT available](https://github.com/soskek/bert-chainer)
-(Thanks!) We were not involved in the creation or maintenance of the PyTorch
+(Thanks!). We were not involved in the creation or maintenance of the PyTorch
 implementation so please direct any questions towards the authors of that
 repository.
 
