@@ -22,23 +22,24 @@ import collections
 import random
 import tokenization
 import tensorflow as tf
+import constants
 
 flags = tf.flags
 
 FLAGS = flags.FLAGS
 
-flags.DEFINE_string("input_file", None,
+flags.DEFINE_string("input_file", constants.INPUT_RAW_DATA_FILE,
                     "Input raw text file (or comma-separated list of files).")
 
 flags.DEFINE_string(
-    "output_file", None,
+    "output_file", constants.OUTPUT_PRETRAINING_DATA,
     "Output TF example file (or comma-separated list of files).")
 
-flags.DEFINE_string("vocab_file", None,
+flags.DEFINE_string("vocab_file", constants.VOCAB_FILE,
                     "The vocabulary file that the BERT model was trained on.")
 
 flags.DEFINE_bool(
-    "do_lower_case", True,
+    "do_lower_case", constants.DO_LOWER_CASE,
     "Whether to lower case the input text. Should be True for uncased "
     "models and False for cased models.")
 
@@ -46,7 +47,7 @@ flags.DEFINE_bool(
     "do_whole_word_mask", False,
     "Whether to use whole word masking rather than per-WordPiece masking.")
 
-flags.DEFINE_integer("max_seq_length", 128, "Maximum sequence length.")
+flags.DEFINE_integer("max_seq_length", constants.MAX_SEQ_LENGTH, "Maximum sequence length.")
 
 flags.DEFINE_integer("max_predictions_per_seq", 20,
                      "Maximum number of masked LM predictions per sequence.")
