@@ -12,43 +12,42 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+from __future__ import absolute_import, division, print_function
 
 import collections
 import json
 import random
 import re
 
-import modeling
 import six
 import tensorflow as tf
 
+import modeling
+
 
 class BertModelTest(tf.test.TestCase):
-
     class BertModelTester(object):
-
-        def __init__(self,
-                     parent,
-                     batch_size=13,
-                     seq_length=7,
-                     is_training=True,
-                     use_input_mask=True,
-                     use_token_type_ids=True,
-                     vocab_size=99,
-                     hidden_size=32,
-                     num_hidden_layers=5,
-                     num_attention_heads=4,
-                     intermediate_size=37,
-                     hidden_act="gelu",
-                     hidden_dropout_prob=0.1,
-                     attention_probs_dropout_prob=0.1,
-                     max_position_embeddings=512,
-                     type_vocab_size=16,
-                     initializer_range=0.02,
-                     scope=None):
+        def __init__(
+            self,
+            parent,
+            batch_size=13,
+            seq_length=7,
+            is_training=True,
+            use_input_mask=True,
+            use_token_type_ids=True,
+            vocab_size=99,
+            hidden_size=32,
+            num_hidden_layers=5,
+            num_attention_heads=4,
+            intermediate_size=37,
+            hidden_act="gelu",
+            hidden_dropout_prob=0.1,
+            attention_probs_dropout_prob=0.1,
+            max_position_embeddings=512,
+            type_vocab_size=16,
+            initializer_range=0.02,
+            scope=None,
+        ):
             self.parent = parent
             self.batch_size = batch_size
             self.seq_length = seq_length
@@ -69,18 +68,15 @@ class BertModelTest(tf.test.TestCase):
             self.scope = scope
 
         def create_model(self):
-            input_ids = BertModelTest.ids_tensor([self.batch_size, self.seq_length],
-                                                 self.vocab_size)
+            input_ids = BertModelTest.ids_tensor([self.batch_size, self.seq_length], self.vocab_size)
 
             input_mask = None
             if self.use_input_mask:
-                input_mask = BertModelTest.ids_tensor(
-                    [self.batch_size, self.seq_length], vocab_size=2)
+                input_mask = BertModelTest.ids_tensor([self.batch_size, self.seq_length], vocab_size=2)
 
             token_type_ids = None
             if self.use_token_type_ids:
-                token_type_ids = BertModelTest.ids_tensor(
-                    [self.batch_size, self.seq_length], self.type_vocab_size)
+                token_type_ids = BertModelTest.ids_tensor([self.batch_size, self.seq_length], self.type_vocab_size)
 
             config = modeling.BertConfig(
                 vocab_size=self.vocab_size,
@@ -93,7 +89,8 @@ class BertModelTest(tf.test.TestCase):
                 attention_probs_dropout_prob=self.attention_probs_dropout_prob,
                 max_position_embeddings=self.max_position_embeddings,
                 type_vocab_size=self.type_vocab_size,
-                initializer_range=self.initializer_range)
+                initializer_range=self.initializer_range,
+            )
 
             model = modeling.BertModel(
                 config=config,
@@ -101,7 +98,8 @@ class BertModelTest(tf.test.TestCase):
                 input_ids=input_ids,
                 input_mask=input_mask,
                 token_type_ids=token_type_ids,
-                scope=self.scope)
+                scope=self.scope,
+            )
 
             outputs = {
                 "embedding_output": model.get_embedding_output(),
@@ -114,14 +112,15 @@ class BertModelTest(tf.test.TestCase):
         def check_output(self, result):
             self.parent.assertAllEqual(
                 result["embedding_output"].shape,
-                [self.batch_size, self.seq_length, self.hidden_size])
+                [self.batch_size, self.seq_length, self.hidden_size],
+            )
 
             self.parent.assertAllEqual(
                 result["sequence_output"].shape,
-                [self.batch_size, self.seq_length, self.hidden_size])
+                [self.batch_size, self.seq_length, self.hidden_size],
+            )
 
-            self.parent.assertAllEqual(result["pooled_output"].shape,
-                                       [self.batch_size, self.hidden_size])
+            self.parent.assertAllEqual(result["pooled_output"].shape, [self.batch_size, self.hidden_size])
 
     def test_default(self):
         self.run_tester(BertModelTest.BertModelTester(self))
@@ -135,8 +134,7 @@ class BertModelTest(tf.test.TestCase):
     def run_tester(self, tester):
         with self.test_session() as sess:
             ops = tester.create_model()
-            init_op = tf.group(tf.global_variables_initializer(),
-                               tf.local_variables_initializer())
+            init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
             sess.run(init_op)
             output_result = sess.run(ops)
             tester.check_output(output_result)
@@ -187,8 +185,10 @@ class BertModelTest(tf.test.TestCase):
         unreachable = filtered_unreachable
 
         self.assertEqual(
-            len(unreachable), 0, "The following ops are unreachable: %s" %
-            (" ".join([x.name for x in unreachable])))
+            len(unreachable),
+            0,
+            "The following ops are unreachable: %s" % (" ".join([x.name for x in unreachable])),
+        )
 
     @classmethod
     def get_unreachable_ops(cls, graph, outputs):

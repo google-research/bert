@@ -14,37 +14,40 @@
 # limitations under the License.
 """BERT finetuning runner with TF-Hub."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+from __future__ import absolute_import, division, print_function
 
 import os
+
+import tensorflow as tf
+import tensorflow_hub as hub
+
 import optimization
 import run_classifier
 import tokenization
-import tensorflow as tf
-import tensorflow_hub as hub
 
 flags = tf.flags
 
 FLAGS = flags.FLAGS
 
-flags.DEFINE_string(
-    "bert_hub_module_handle", None,
-    "Handle for the BERT TF-Hub module.")
+flags.DEFINE_string("bert_hub_module_handle", None, "Handle for the BERT TF-Hub module.")
 
 
-def create_model(is_training, input_ids, input_mask, segment_ids, labels,
-                 num_labels, bert_hub_module_handle):
+def create_model(
+    is_training,
+    input_ids,
+    input_mask,
+    segment_ids,
+    labels,
+    num_labels,
+    bert_hub_module_handle,
+):
     """Creates a classification model."""
     tags = set()
     if is_training:
         tags.add("train")
     bert_module = hub.Module(bert_hub_module_handle, tags=tags, trainable=True)
-    bert_inputs = dict(
-        input_ids=input_ids, input_mask=input_mask, segment_ids=segment_ids)
-    bert_outputs = bert_module(
-        inputs=bert_inputs, signature="tokens", as_dict=True)
+    bert_inputs = dict(input_ids=input_ids, input_mask=input_mask, segment_ids=segment_ids)
+    bert_outputs = bert_module(inputs=bert_inputs, signature="tokens", as_dict=True)
 
     # In the demo, we are doing a simple classification task on the entire
     # segment.
@@ -56,11 +59,12 @@ def create_model(is_training, input_ids, input_mask, segment_ids, labels,
     hidden_size = output_layer.shape[-1].value
 
     output_weights = tf.get_variable(
-        "output_weights", [num_labels, hidden_size],
-        initializer=tf.truncated_normal_initializer(stddev=0.02))
+        "output_weights",
+        [num_labels, hidden_size],
+        initializer=tf.truncated_normal_initializer(stddev=0.02),
+    )
 
-    output_bias = tf.get_variable(
-        "output_bias", [num_labels], initializer=tf.zeros_initializer())
+    output_bias = tf.get_variable("output_bias", [num_labels], initializer=tf.zeros_initializer())
 
     with tf.variable_scope("loss"):
         if is_training:
@@ -80,8 +84,14 @@ def create_model(is_training, input_ids, input_mask, segment_ids, labels,
         return (loss, per_example_loss, logits, probabilities)
 
 
-def model_fn_builder(num_labels, learning_rate, num_train_steps,
-                     num_warmup_steps, use_tpu, bert_hub_module_handle):
+def model_fn_builder(
+    num_labels,
+    learning_rate,
+    num_train_steps,
+    num_warmup_steps,
+    use_tpu,
+    bert_hub_module_handle,
+):
     """Returns `model_fn` closure for TPUEstimator."""
 
     def model_fn(features, labels, mode, params):  # pylint: disable=unused-argument
@@ -96,19 +106,25 @@ def model_fn_builder(num_labels, learning_rate, num_train_steps,
         segment_ids = features["segment_ids"]
         label_ids = features["label_ids"]
 
-        is_training = (mode == tf.estimator.ModeKeys.TRAIN)
+        is_training = mode == tf.estimator.ModeKeys.TRAIN
 
         (total_loss, per_example_loss, logits, probabilities) = create_model(
-            is_training, input_ids, input_mask, segment_ids, label_ids, num_labels,
-            bert_hub_module_handle)
+            is_training,
+            input_ids,
+            input_mask,
+            segment_ids,
+            label_ids,
+            num_labels,
+            bert_hub_module_handle,
+        )
 
         output_spec = None
         if mode == tf.estimator.ModeKeys.TRAIN:
             train_op = optimization.create_optimizer(
-                total_loss, learning_rate, num_train_steps, num_warmup_steps, use_tpu)
+                total_loss, learning_rate, num_train_steps, num_warmup_steps, use_tpu
+            )
 
-            output_spec = tf.contrib.tpu.TPUEstimatorSpec(
-                mode=mode, loss=total_loss, train_op=train_op)
+            output_spec = tf.contrib.tpu.TPUEstimatorSpec(mode=mode, loss=total_loss, train_op=train_op)
         elif mode == tf.estimator.ModeKeys.EVAL:
 
             def metric_fn(per_example_loss, label_ids, logits):
@@ -118,14 +134,11 @@ def model_fn_builder(num_labels, learning_rate, num_train_steps,
                 return {"eval_accuracy": accuracy, "eval_loss": loss}
 
             eval_metrics = (metric_fn, [per_example_loss, label_ids, logits])
-            output_spec = tf.contrib.tpu.TPUEstimatorSpec(
-                mode=mode, loss=total_loss, eval_metrics=eval_metrics)
+            output_spec = tf.contrib.tpu.TPUEstimatorSpec(mode=mode, loss=total_loss, eval_metrics=eval_metrics)
         elif mode == tf.estimator.ModeKeys.PREDICT:
-            output_spec = tf.contrib.tpu.TPUEstimatorSpec(
-                mode=mode, predictions={"probabilities": probabilities})
+            output_spec = tf.contrib.tpu.TPUEstimatorSpec(mode=mode, predictions={"probabilities": probabilities})
         else:
-            raise ValueError(
-                "Only TRAIN, EVAL and PREDICT modes are supported: %s" % (mode))
+            raise ValueError("Only TRAIN, EVAL and PREDICT modes are supported: %s" % (mode))
 
         return output_spec
 
@@ -138,10 +151,8 @@ def create_tokenizer_from_hub_module(bert_hub_module_handle):
         bert_module = hub.Module(bert_hub_module_handle)
         tokenization_info = bert_module(signature="tokenization_info", as_dict=True)
         with tf.Session() as sess:
-            vocab_file, do_lower_case = sess.run([tokenization_info["vocab_file"],
-                                                  tokenization_info["do_lower_case"]])
-    return tokenization.FullTokenizer(
-        vocab_file=vocab_file, do_lower_case=do_lower_case)
+            vocab_file, do_lower_case = sess.run([tokenization_info["vocab_file"], tokenization_info["do_lower_case"]])
+    return tokenization.FullTokenizer(vocab_file=vocab_file, do_lower_case=do_lower_case)
 
 
 def main(_):
@@ -172,7 +183,8 @@ def main(_):
     tpu_cluster_resolver = None
     if FLAGS.use_tpu and FLAGS.tpu_name:
         tpu_cluster_resolver = tf.contrib.cluster_resolver.TPUClusterResolver(
-            FLAGS.tpu_name, zone=FLAGS.tpu_zone, project=FLAGS.gcp_project)
+            FLAGS.tpu_name, zone=FLAGS.tpu_zone, project=FLAGS.gcp_project
+        )
 
     is_per_host = tf.contrib.tpu.InputPipelineConfig.PER_HOST_V2
     run_config = tf.contrib.tpu.RunConfig(
@@ -183,15 +195,16 @@ def main(_):
         tpu_config=tf.contrib.tpu.TPUConfig(
             iterations_per_loop=FLAGS.iterations_per_loop,
             num_shards=FLAGS.num_tpu_cores,
-            per_host_input_for_training=is_per_host))
+            per_host_input_for_training=is_per_host,
+        ),
+    )
 
     train_examples = None
     num_train_steps = None
     num_warmup_steps = None
     if FLAGS.do_train:
         train_examples = processor.get_train_examples(FLAGS.data_dir)
-        num_train_steps = int(
-            len(train_examples) / FLAGS.train_batch_size * FLAGS.num_train_epochs)
+        num_train_steps = int(len(train_examples) / FLAGS.train_batch_size * FLAGS.num_train_epochs)
         num_warmup_steps = int(num_train_steps * FLAGS.warmup_proportion)
 
     model_fn = model_fn_builder(
@@ -200,7 +213,8 @@ def main(_):
         num_train_steps=num_train_steps,
         num_warmup_steps=num_warmup_steps,
         use_tpu=FLAGS.use_tpu,
-        bert_hub_module_handle=FLAGS.bert_hub_module_handle)
+        bert_hub_module_handle=FLAGS.bert_hub_module_handle,
+    )
 
     # If TPU is not available, this will fall back to normal Estimator on CPU
     # or GPU.
@@ -210,11 +224,13 @@ def main(_):
         config=run_config,
         train_batch_size=FLAGS.train_batch_size,
         eval_batch_size=FLAGS.eval_batch_size,
-        predict_batch_size=FLAGS.predict_batch_size)
+        predict_batch_size=FLAGS.predict_batch_size,
+    )
 
     if FLAGS.do_train:
         train_features = run_classifier.convert_examples_to_features(
-            train_examples, label_list, FLAGS.max_seq_length, tokenizer)
+            train_examples, label_list, FLAGS.max_seq_length, tokenizer
+        )
         tf.logging.info("***** Running training *****")
         tf.logging.info("  Num examples = %d", len(train_examples))
         tf.logging.info("  Batch size = %d", FLAGS.train_batch_size)
@@ -223,13 +239,15 @@ def main(_):
             features=train_features,
             seq_length=FLAGS.max_seq_length,
             is_training=True,
-            drop_remainder=True)
+            drop_remainder=True,
+        )
         estimator.train(input_fn=train_input_fn, max_steps=num_train_steps)
 
     if FLAGS.do_eval:
         eval_examples = processor.get_dev_examples(FLAGS.data_dir)
         eval_features = run_classifier.convert_examples_to_features(
-            eval_examples, label_list, FLAGS.max_seq_length, tokenizer)
+            eval_examples, label_list, FLAGS.max_seq_length, tokenizer
+        )
 
         tf.logging.info("***** Running evaluation *****")
         tf.logging.info("  Num examples = %d", len(eval_examples))
@@ -249,7 +267,8 @@ def main(_):
             features=eval_features,
             seq_length=FLAGS.max_seq_length,
             is_training=False,
-            drop_remainder=eval_drop_remainder)
+            drop_remainder=eval_drop_remainder,
+        )
 
         result = estimator.evaluate(input_fn=eval_input_fn, steps=eval_steps)
 
@@ -265,12 +284,12 @@ def main(_):
         if FLAGS.use_tpu:
             # Discard batch remainder if running on TPU
             n = len(predict_examples)
-            predict_examples = predict_examples[:(n - n % FLAGS.predict_batch_size)]
+            predict_examples = predict_examples[: (n - n % FLAGS.predict_batch_size)]
 
         predict_file = os.path.join(FLAGS.output_dir, "predict.tf_record")
         run_classifier.file_based_convert_examples_to_features(
-            predict_examples, label_list, FLAGS.max_seq_length, tokenizer,
-            predict_file)
+            predict_examples, label_list, FLAGS.max_seq_length, tokenizer, predict_file
+        )
 
         tf.logging.info("***** Running prediction*****")
         tf.logging.info("  Num examples = %d", len(predict_examples))
@@ -280,7 +299,8 @@ def main(_):
             input_file=predict_file,
             seq_length=FLAGS.max_seq_length,
             is_training=False,
-            drop_remainder=FLAGS.use_tpu)
+            drop_remainder=FLAGS.use_tpu,
+        )
 
         result = estimator.predict(input_fn=predict_input_fn)
 
@@ -289,9 +309,7 @@ def main(_):
             tf.logging.info("***** Predict results *****")
             for prediction in result:
                 probabilities = prediction["probabilities"]
-                output_line = "\t".join(
-                    str(class_probability)
-                    for class_probability in probabilities) + "\n"
+                output_line = "\t".join(str(class_probability) for class_probability in probabilities) + "\n"
                 writer.write(output_line)
 
 
