@@ -1,5 +1,7 @@
 # BERT
 
+Google BERT 위에 우리 TFRecord 기준 Whole Word Masking과 SOP를 구현한 결과물입니다. 20/4Q에 진행했습니다.
+
 **\*\*\*\*\* New March 11th, 2020: Smaller BERT Models \*\*\*\*\***
 
 This is a release of 24 smaller BERT models (English only, uncased, trained with WordPiece masking) referenced in [Well-Read Students Learn Better: On the Importance of Pre-training Compact Models](https://arxiv.org/abs/1908.08962).
