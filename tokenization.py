@@ -122,7 +122,7 @@ def load_vocab(vocab_file):
   """Loads a vocabulary file into a dictionary."""
   vocab = collections.OrderedDict()
   index = 0
-  with tf.gfile.GFile(vocab_file, "r") as reader:
+  with tf.io.gfile.GFile(vocab_file, "r") as reader:
     while True:
       token = convert_to_unicode(reader.readline())
       if not token:
@@ -137,7 +137,10 @@ def convert_by_vocab(vocab, items):
   """Converts a sequence of [tokens|ids] using the vocab."""
   output = []
   for item in items:
-    output.append(vocab[item])
+    if item in vocab:
+      output.append(vocab[item])
+    else:
+      output.append(vocab["[UNK]"])
   return output
 
 
@@ -164,16 +167,17 @@ class FullTokenizer(object):
   def __init__(self, vocab_file, do_lower_case=True):
     self.vocab = load_vocab(vocab_file)
     self.inv_vocab = {v: k for k, v in self.vocab.items()}
-    self.basic_tokenizer = BasicTokenizer(do_lower_case=do_lower_case)
-    self.wordpiece_tokenizer = WordpieceTokenizer(vocab=self.vocab)
+    # self.basic_tokenizer = BasicTokenizer(do_lower_case=do_lower_case)
+    # self.wordpiece_tokenizer = WordpieceTokenizer(vocab=self.vocab)
 
   def tokenize(self, text):
-    split_tokens = []
-    for token in self.basic_tokenizer.tokenize(text):
-      for sub_token in self.wordpiece_tokenizer.tokenize(token):
-        split_tokens.append(sub_token)
+    # split_tokens = []
+    # for token in self.basic_tokenizer.tokenize(text):
+    #   for sub_token in self.wordpiece_tokenizer.tokenize(token):
+    #     split_tokens.append(sub_token)
 
-    return split_tokens
+    # return split_tokens
+    return text.split()
 
   def convert_tokens_to_ids(self, tokens):
     return convert_by_vocab(self.vocab, tokens)
