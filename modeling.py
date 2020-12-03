@@ -773,16 +773,16 @@ def attention_layer(from_tensor,
 
 
 def transformer_model(input_tensor,
-                     attention_mask=None,
-                     hidden_size=768,
-                     num_hidden_layers=12,
-                     num_attention_heads=12,
-                     intermediate_size=3072,
-                     intermediate_act_fn=gelu,
-                     hidden_dropout_prob=0.1,
-                     attention_probs_dropout_prob=0.1,
-                     initializer_range=0.02,
-                     do_return_all_layers=False):
+                      attention_mask=None,
+                      hidden_size=768,
+                      num_hidden_layers=12,
+                      num_attention_heads=12,
+                      intermediate_size=3072,
+                      intermediate_act_fn=gelu,
+                      hidden_dropout_prob=0.1,
+                      attention_probs_dropout_prob=0.1,
+                      initializer_range=0.02,
+                      do_return_all_layers=False):
     """Multi-headed, multi-layer Transformer from "Attention is All You Need".
 
     This is almost an exact implementation of the original Transformer encoder.

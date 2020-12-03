@@ -686,7 +686,7 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
                 accuracy = tf.metrics.accuracy(
                     labels=label_ids, predictions=predictions, weights=is_real_example)
                 loss = tf.metrics.mean(values=per_example_loss, weights=is_real_example)
-                return {"eval_accuracy": accuracy, "eval_loss": loss,}
+                return {"eval_accuracy": accuracy, "eval_loss": loss}
 
             eval_metrics = (metric_fn, [per_example_loss, label_ids, logits, is_real_example])
             output_spec = tf.contrib.tpu.TPUEstimatorSpec(
@@ -730,22 +730,22 @@ def input_fn_builder(features, seq_length, is_training, drop_remainder):
         # not use Dataset.from_generator() because that uses tf.py_func which is
         # not TPU compatible. The right way to load data is with TFRecordReader.
         d = tf.data.Dataset.from_tensor_slices({
-                "input_ids":
-                    tf.constant(
-                        all_input_ids, shape=[num_examples, seq_length],
-                        dtype=tf.int32),
-                "input_mask":
-                    tf.constant(
-                        all_input_mask,
-                        shape=[num_examples, seq_length],
-                        dtype=tf.int32),
-                "segment_ids":
-                    tf.constant(
-                        all_segment_ids,
-                        shape=[num_examples, seq_length],
-                        dtype=tf.int32),
-                "label_ids":
-                    tf.constant(all_label_ids, shape=[num_examples], dtype=tf.int32),
+            "input_ids":
+                tf.constant(
+                    all_input_ids, shape=[num_examples, seq_length],
+                    dtype=tf.int32),
+            "input_mask":
+                tf.constant(
+                    all_input_mask,
+                    shape=[num_examples, seq_length],
+                    dtype=tf.int32),
+            "segment_ids":
+                tf.constant(
+                    all_segment_ids,
+                    shape=[num_examples, seq_length],
+                    dtype=tf.int32),
+            "label_ids":
+                tf.constant(all_label_ids, shape=[num_examples], dtype=tf.int32),
         })
 
         if is_training:

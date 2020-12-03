@@ -3,7 +3,7 @@ import sys
 
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 
-from create_pretraining_data_turn import one_process
+from create_pretraining_data import one_process
 from multiprocessing import Process
 import glob
 import json
@@ -41,7 +41,7 @@ if __name__ == "__main__":
     if not input_prefix.endswith('.txt'):
         input_prefix = os.path.join(input_prefix, '.txt')
 
-    if not '{}_{}' in output_prefix:
+    if '{}_{}' not in output_prefix:
         output_prefix = output_prefix + '{}_{}'
 
     input_list = glob.glob(input_prefix)

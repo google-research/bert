@@ -183,11 +183,11 @@ def model_fn_builder(bert_config, init_checkpoint, layer_indexes, use_tpu,
             if var.name in initialized_variable_names:
                 init_string = ", *INIT_FROM_CKPT*"
             tf.logging.info("  name = %s, shape = %s%s", var.name, var.shape,
-                init_string)
+                            init_string)
 
         all_layers = model.get_all_encoder_layers()
 
-        predictions = {"unique_id": unique_ids,}
+        predictions = {"unique_id": unique_ids}
 
         for (i, layer_index) in enumerate(layer_indexes):
             predictions["layer_output_%d" % i] = all_layers[layer_index]

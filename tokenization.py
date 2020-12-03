@@ -72,7 +72,7 @@ def validate_case_matches_checkpoint(do_lower_case, init_checkpoint):
                 "should pass in `--do_lower_case=%s` so that the fine-tuning matches "
                 "how the model was pre-training. If this error is wrong, please "
                 "just comment out this check." % (actual_flag, init_checkpoint,
-                                                                                    model_name, case_name, opposite_flag))
+                                                  model_name, case_name, opposite_flag))
 
 
 def convert_to_unicode(text):

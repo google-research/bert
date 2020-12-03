@@ -70,7 +70,7 @@ class BertModelTest(tf.test.TestCase):
 
         def create_model(self):
             input_ids = BertModelTest.ids_tensor([self.batch_size, self.seq_length],
-                                                  self.vocab_size)
+                                                 self.vocab_size)
 
             input_mask = None
             if self.use_input_mask:

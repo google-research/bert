@@ -35,7 +35,7 @@ flags.DEFINE_string(
 
 
 def create_model(is_training, input_ids, input_mask, segment_ids, labels,
-                                 num_labels, bert_hub_module_handle):
+                 num_labels, bert_hub_module_handle):
     """Creates a classification model."""
     tags = set()
     if is_training:
@@ -115,7 +115,7 @@ def model_fn_builder(num_labels, learning_rate, num_train_steps,
                 predictions = tf.argmax(logits, axis=-1, output_type=tf.int32)
                 accuracy = tf.metrics.accuracy(label_ids, predictions)
                 loss = tf.metrics.mean(per_example_loss)
-                return {"eval_accuracy": accuracy, "eval_loss": loss,}
+                return {"eval_accuracy": accuracy, "eval_loss": loss}
 
             eval_metrics = (metric_fn, [per_example_loss, label_ids, logits])
             output_spec = tf.contrib.tpu.TPUEstimatorSpec(
@@ -139,7 +139,7 @@ def create_tokenizer_from_hub_module(bert_hub_module_handle):
         tokenization_info = bert_module(signature="tokenization_info", as_dict=True)
         with tf.Session() as sess:
             vocab_file, do_lower_case = sess.run([tokenization_info["vocab_file"],
-                tokenization_info["do_lower_case"]])
+                                                  tokenization_info["do_lower_case"]])
     return tokenization.FullTokenizer(
         vocab_file=vocab_file, do_lower_case=do_lower_case)
 

@@ -473,7 +473,7 @@ def convert_examples_to_features(examples, tokenizer, max_seq_length,
 
 
 def _improve_answer_span(doc_tokens, input_start, input_end, tokenizer,
-                                                 orig_answer_text):
+                         orig_answer_text):
     """Returns tokenized answer spans that better match the annotated answer."""
 
     # The SQuAD annotations are character based. We first project them to
@@ -619,7 +619,7 @@ def model_fn_builder(bert_config, init_checkpoint, learning_rate,
         scaffold_fn = None
         if init_checkpoint:
             (assignment_map, initialized_variable_names
-            ) = modeling.get_assignment_map_from_checkpoint(tvars, init_checkpoint)
+             ) = modeling.get_assignment_map_from_checkpoint(tvars, init_checkpoint)
             if use_tpu:
 
                 def tpu_scaffold():
