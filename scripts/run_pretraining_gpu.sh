@@ -1,0 +1,11 @@
+python ./run_pretraining.py --bert_config_file=./bert_config.json \
+    --input_file=../tf_records/*.tfrecord \
+    --output_dir=./checkpoints \
+    --do_train=True \
+    --do_eval=True \
+    --train_batch_size=32 \
+    --eval_batch_size=64 \
+    --learning_rate=1e-4 \
+    --num_train_steps=500000 \
+    --num_warmup_steps=30000 \
+    --use_tpu=False \

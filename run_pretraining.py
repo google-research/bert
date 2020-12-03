@@ -63,7 +63,7 @@ flags.DEFINE_bool("do_eval", False, "Whether to run eval on the dev set.")
 
 flags.DEFINE_integer("train_batch_size", 32, "Total batch size for training.")
 
-flags.DEFINE_integer("eval_batch_size", 8, "Total batch size for eval.")
+flags.DEFINE_integer("eval_batch_size", 64, "Total batch size for eval.")
 
 flags.DEFINE_float("learning_rate", 5e-5, "The initial learning rate for Adam.")
 
@@ -77,7 +77,7 @@ flags.DEFINE_integer("save_checkpoints_steps", 1000,
 flags.DEFINE_integer("iterations_per_loop", 1000,
                      "How many steps to make in each estimator call.")
 
-flags.DEFINE_integer("max_eval_steps", 100, "Maximum number of eval steps.")
+flags.DEFINE_integer("max_eval_steps", 1000, "Maximum number of eval steps.")
 
 flags.DEFINE_bool("use_tpu", False, "Whether to use TPU or GPU/CPU.")
 
@@ -121,6 +121,7 @@ def model_fn_builder(bert_config, init_checkpoint, learning_rate,
     input_ids = features["input_ids"]
     input_mask = features["input_mask"]
     segment_ids = features["segment_ids"]
+    turn_ids = features["turn_ids"]
     masked_lm_positions = features["masked_lm_positions"]
     masked_lm_ids = features["masked_lm_ids"]
     masked_lm_weights = features["masked_lm_weights"]
@@ -134,7 +135,8 @@ def model_fn_builder(bert_config, init_checkpoint, learning_rate,
         input_ids=input_ids,
         input_mask=input_mask,
         token_type_ids=segment_ids,
-        use_one_hot_embeddings=use_one_hot_embeddings)
+        use_one_hot_embeddings=use_one_hot_embeddings,
+        turn_type_ids=turn_ids)
 
     (masked_lm_loss,
      masked_lm_example_loss, masked_lm_log_probs) = get_masked_lm_output(
@@ -336,6 +338,8 @@ def input_fn_builder(input_files,
         "input_ids":
             tf.FixedLenFeature([max_seq_length], tf.int64),
         "input_mask":
+            tf.FixedLenFeature([max_seq_length], tf.int64),
+        "turn_ids":
             tf.FixedLenFeature([max_seq_length], tf.int64),
         "segment_ids":
             tf.FixedLenFeature([max_seq_length], tf.int64),
