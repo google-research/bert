@@ -1,0 +1,20 @@
+{
+    "input_prefix": "/home/roomylee/bert_data_from_ironman/*/*.txt",
+    "output_prefix": "/home/roomylee/bert_data_from_ironman/tf_record/tf_examples_{}_{}.tfrecord",
+    "vocab": "/home/rudvlf0413/home/google_bert/temp_vocab.txt",
+    "max_seq_length": 128,
+    "do_lower_case": false,
+    "dupe_factor": 1,
+    "short_seq_prob": 0.0,
+    "masked_lm_prob": 0.15,
+    "max_predictions_per_seq": 20,
+    "num_split": 1,
+    "test_split": false,
+    "test_split_rate": 0.0,
+    "random_seed": 12345,
+    "turn_sep": true,
+    "is_multi": false,
+    "for_multi": false,
+    "pair_prob": 0,
+    "num_process": 25
+}
