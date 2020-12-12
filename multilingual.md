@@ -107,7 +107,7 @@ To run fine-tuning on XNLI. The language is hard-coded into `run_classifier.py`
 (Chinese by default), so please modify `XnliProcessor` if you want to run on
 another language.
 
-This is a large dataset, so this will training will take a few hours on a GPU
+This is a large dataset, so this training will take a few hours on a GPU
 (or about 30 minutes on a Cloud TPU). To run an experiment quickly for
 debugging, just set `num_train_epochs` to a small value like `0.1`.
 
