@@ -388,7 +388,6 @@ def create_masked_lm_predictions(tokens, masked_lm_prob,
     for index in index_set:
       covered_indexes.add(index)
 
-      masked_token = None
       # 80% of the time, replace with [MASK]
       if rng.random() < 0.8:
         masked_token = "[MASK]"
