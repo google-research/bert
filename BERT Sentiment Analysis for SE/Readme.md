@@ -1,4 +1,4 @@
-#BERT Sentiment Analysis model for Software Engineering Comments 
+# BERT Sentiment Analysis model for Software Engineering Comments 
 
 We have sentiment analysis model to analyze user reviews , chats , messages , comments , as well product reviews too . Generally the domain of analysis speaks about analysis of the sentiments of movies , people review or any product or service . Right now we dont have as such production models to speak about technical language sentiment analysis .Here in this problem statement , I created a BERT model to do sentiment analysis on the software engineering comments , which can help coders , developers as well site admins to look on the sentiment of the asked questions and here in ground truth lying behind . 
 
