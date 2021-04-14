@@ -19,3 +19,68 @@ BERT’s key technical innovation is applying the bidirectional training of Tran
      plagarism as well can detect which type of content is going quality . Also it will halp a lot in evaluating technlogies and tech stack based on the responses.
  ```
  
+ ## How this model will work : 
+ 
+ For training the BERT Model  I am using [K train Library](https://pypi.org/project/ktrain/) which is a a fastai-like interface to Keras, that helps build and train Keras models with less time and coding. ktrain is open-source and available on GitHub [here](https://github.com/amaiya/ktrain/tree/master/ktrain).
+ 
+ To install ktrain, simply type the following:
+ ```
+ pip install ktrain
+ ```
+ To begin, let’s import the ktrain and ktrain.text modules:
+ ```
+ import ktrain
+from ktrain import text
+```
+Load the Data in the BERT model : 
+```
+train_path="/content/Train.csv"
+test_path="/content/Test.csv"
+tr_path= pathlib.Path(train_path)
+te_path=pathlib.Path(test_path)
+if tr_path.exists ():
+    print("Train data path set.")
+else: 
+    raise SystemExit("Train data path does not exist.")
+     
+if te_path.exists ():
+    print("Test data path set.")
+else: 
+    raise SystemExit("Test data path does not exist.")
+    
+(x_train, y_train), (x_test, y_test), preproc =  text.texts_from_array(train_df[:,2], train_df[:,1],  x_test=test_df[:,2], y_test=test_df[:,1],maxlen=500, preprocess_mode='bert')
+```
+Load BERT and wrap it in a Learner object
+The first argument to get_learner uses the ktraintext_classifier function to load the pre-trained BERT model with a randomly initialized final Dense layer. The second and third arguments are the training and validation data, respectively. The last argument get_learner is the batch size. We use a small batch size of 6.
+```
+model = text.text_classifier('bert', (x_train, y_train) , preproc=preproc)
+learner = ktrain.get_learner(model, 
+                             train_data=(x_train, y_train), 
+                             val_data=(x_test, y_test), 
+                             batch_size=6)
+```
+Train the model
+To train the model, we use the fit_onecycle method of ktrain which employs a 1cycle learning rate policy that linearly increases the learning rate for the first half of training and then decreases the learning rate for the latter half:
+```
+learner.autofit(2e-5, early_stopping=5)
+```
+Plot the learning rate
+```
+learner.lr_plot()
+```
+Storing the model
+```
+model.save("model.h5")
+predictor = ktrain.get_predictor(learner.model, preproc)
+```
+
+## How to Run the script : 
+The steps involved to run the script are as follows : (Specify all your data paths before run)
+```
+pip install -r requirements.txt
+python model.py
+```
+
+## Final Conclusion :
+
+The model is performing with near about to 86.7 % accuracy on the testing satge on the test data.
