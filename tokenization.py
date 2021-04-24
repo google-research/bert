@@ -17,7 +17,7 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-
+from packaging import version
 import collections
 import re
 import unicodedata
@@ -122,15 +122,26 @@ def load_vocab(vocab_file):
   """Loads a vocabulary file into a dictionary."""
   vocab = collections.OrderedDict()
   index = 0
-  with tf.gfile.GFile(vocab_file, "r") as reader:
-    while True:
-      token = convert_to_unicode(reader.readline())
-      if not token:
-        break
-      token = token.strip()
-      vocab[token] = index
-      index += 1
-  return vocab
+  if version.parse(tf.__version__)<version.parse("2"):
+    with tf.gfile.GFile(vocab_file, "r") as reader:
+      while True:
+        token = convert_to_unicode(reader.readline())
+        if not token:
+          break
+        token = token.strip()
+        vocab[token] = index
+        index += 1
+    return vocab
+  elif version.parse(tf.__version__)>=version.parse("2"):
+    with tf.io.gfile.GFile(vocab_file, "r") as reader:
+      while True:
+        token = convert_to_unicode(reader.readline())
+        if not token:
+          break
+        token = token.strip()
+        vocab[token] = index
+        index += 1
+    return vocab
 
 
 def convert_by_vocab(vocab, items):
@@ -245,6 +256,10 @@ class BasicTokenizer(object):
         start_new_word = False
         output[-1].append(char)
       i += 1
+    if six.PY2:
+      split_punc=["".join(x) for x in output]
+      split_punc=[item.encode('utf-8') for item in split_punc]
+      return split_punc
 
     return ["".join(x) for x in output]
 
