@@ -22,6 +22,9 @@ import collections
 import random
 import tokenization
 import tensorflow as tf
+if(tf.__version__.startswith("2")):
+    tf.gfile = tf.io.gfile
+    tf.flags = tf.compat.v1.flags
 
 flags = tf.flags
 
