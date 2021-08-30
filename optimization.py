@@ -22,7 +22,7 @@ import re
 import tensorflow as tf
 
 
-def create_optimizer(loss, init_lr, num_train_steps, num_warmup_steps, use_tpu):
+def create_optimizer(loss, init_lr, num_train_steps, num_warmup_steps, use_tpu, use_amp=False, loss_scale=-1):
   """Creates an optimizer training op."""
   global_step = tf.train.get_or_create_global_step()
 
@@ -66,6 +66,9 @@ def create_optimizer(loss, init_lr, num_train_steps, num_warmup_steps, use_tpu):
 
   if use_tpu:
     optimizer = tf.contrib.tpu.CrossShardOptimizer(optimizer)
+
+  if use_amp:
+    optimizer = tf.train.experimental.enable_mixed_precision_graph_rewrite(optimizer, loss_scale='dynamic' if loss_scale==-1 else loss_scale)
 
   tvars = tf.trainable_variables()
   grads = tf.gradients(loss, tvars)

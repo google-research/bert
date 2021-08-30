@@ -28,6 +28,7 @@ import optimization
 import tokenization
 import six
 import tensorflow as tf
+from tensorflow.core.protobuf import rewriter_config_pb2
 
 flags = tf.flags
 
@@ -152,6 +153,12 @@ flags.DEFINE_bool(
 flags.DEFINE_float(
     "null_score_diff_threshold", 0.0,
     "If null_score - best_non_null is greater than the threshold predict null.")
+
+flags.DEFINE_bool("amp", False, "Mixed Precision for Float 16.")
+
+flags.DEFINE_bool("xla", False, "Acclerated Linear Algebra")
+
+flags.DEFINE_integer('loss_scale', -1, 'Loss Scale for AMP.')
 
 
 class SquadExample(object):
@@ -660,7 +667,7 @@ def model_fn_builder(bert_config, init_checkpoint, learning_rate,
       total_loss = (start_loss + end_loss) / 2.0
 
       train_op = optimization.create_optimizer(
-          total_loss, learning_rate, num_train_steps, num_warmup_steps, use_tpu)
+          total_loss, learning_rate, num_train_steps, num_warmup_steps, use_tpu, FLAGS.amp, FLAGS.loss_scale)
 
       output_spec = tf.contrib.tpu.TPUEstimatorSpec(
           mode=mode,
@@ -1124,6 +1131,35 @@ def validate_flags_or_throw(bert_config):
 
 
 def main(_):
+  import os
+  # From Nvidia Repo, explained here: https://github.com/NVIDIA/DeepLearningExamples/issues/57
+  os.environ['CUDA_CACHE_DISABLE'] = '0'
+  os.environ['TF_GPU_THREAD_MODE'] = 'gpu_private'
+  os.environ['TF_GPU_THREAD_COUNT'] = '2'
+  os.environ['TF_USE_CUDNN_BATCHNORM_SPATIAL_PERSISTENT'] = '1'
+  os.environ['TF_ADJUST_HUE_FUSED'] = '1'
+  os.environ['TF_ADJUST_SATURATION_FUSED'] = '1'
+  os.environ['TF_ENABLE_WINOGRAD_NONFUSED'] = '1'
+  os.environ['TF_SYNC_ON_FINISH'] = '0'
+  os.environ['TF_AUTOTUNE_THRESHOLD'] = '2'
+  os.environ['TF_DISABLE_NVTX_RANGES'] = '1'
+  # Enable AMP
+  amp = FLAGS.amp
+  xla = FLAGS.xla
+  if amp:
+    os.environ["TF_ENABLE_AUTO_MIXED_PRECISION_GRAPH_REWRITE"] = "1"
+  if xla:
+      # https://github.com/tensorflow/tensorflow/blob/8d72537c6abf5a44103b57b9c2e22c14f5f49698/tensorflow/compiler/jit/flags.cc#L78-L87
+      # 1: on for things very likely to be improved
+      # 2: on for everything
+      # fusible: only for Tensorflow operations that XLA knows how to fuse
+      #
+      # os.environ['TF_XLA_FLAGS'] = '--tf_xla_auto_jit=1'
+      # os.environ['TF_XLA_FLAGS'] = '--tf_xla_auto_jit=2'
+      # Best Performing XLA Option
+      os.environ['TF_XLA_FLAGS'] = '--tf_xla_auto_jit=fusible'
+      os.environ["TF_XLA_FLAGS"] = (os.environ.get("TF_XLA_FLAGS", "") + " --tf_xla_enable_lazy_compilation=false")
+
   tf.logging.set_verbosity(tf.logging.INFO)
 
   bert_config = modeling.BertConfig.from_json_file(FLAGS.bert_config_file)
@@ -1140,12 +1176,20 @@ def main(_):
     tpu_cluster_resolver = tf.contrib.cluster_resolver.TPUClusterResolver(
         FLAGS.tpu_name, zone=FLAGS.tpu_zone, project=FLAGS.gcp_project)
 
+  session_config = tf.GraphOptions(
+    rewrite_options=rewriter_config_pb2.RewriterConfig(
+      auto_mixed_precision=1 if FLAGS.amp else 2,
+  ))
+
   is_per_host = tf.contrib.tpu.InputPipelineConfig.PER_HOST_V2
   run_config = tf.contrib.tpu.RunConfig(
       cluster=tpu_cluster_resolver,
       master=FLAGS.master,
       model_dir=FLAGS.output_dir,
       save_checkpoints_steps=FLAGS.save_checkpoints_steps,
+      session_config=tf.ConfigProto(
+          graph_options=session_config,
+          allow_soft_placement=True),
       tpu_config=tf.contrib.tpu.TPUConfig(
           iterations_per_loop=FLAGS.iterations_per_loop,
           num_shards=FLAGS.num_tpu_cores,
@@ -1207,12 +1251,20 @@ def main(_):
     tf.logging.info("  Num steps = %d", num_train_steps)
     del train_examples
 
+    import time
+    start_time = time.time()
+
     train_input_fn = input_fn_builder(
         input_file=train_writer.filename,
         seq_length=FLAGS.max_seq_length,
         is_training=True,
         drop_remainder=True)
     estimator.train(input_fn=train_input_fn, max_steps=num_train_steps)
+
+    elapsed_time = int(time.time() - start_time)
+    tf.logging.info('Elapsed seconds during training %d.', elapsed_time)
+
+
 
   if FLAGS.do_predict:
     eval_examples = read_squad_examples(
