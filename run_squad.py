@@ -27,7 +27,7 @@ import modeling
 import optimization
 import tokenization
 import six
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.core.protobuf import rewriter_config_pb2
 
 flags = tf.flags
@@ -159,6 +159,8 @@ flags.DEFINE_bool("amp", False, "Mixed Precision for Float 16.")
 flags.DEFINE_bool("xla", False, "Acclerated Linear Algebra")
 
 flags.DEFINE_integer('loss_scale', -1, 'Loss Scale for AMP.')
+
+flags.DEFINE_integer('num_gpus', 1, 'Number of GPUs.')
 
 
 class SquadExample(object):
@@ -669,7 +671,7 @@ def model_fn_builder(bert_config, init_checkpoint, learning_rate,
       train_op = optimization.create_optimizer(
           total_loss, learning_rate, num_train_steps, num_warmup_steps, use_tpu, FLAGS.amp, FLAGS.loss_scale)
 
-      output_spec = tf.contrib.tpu.TPUEstimatorSpec(
+      output_spec = tf.estimator.tpu.TPUEstimatorSpec(
           mode=mode,
           loss=total_loss,
           train_op=train_op,
@@ -680,7 +682,7 @@ def model_fn_builder(bert_config, init_checkpoint, learning_rate,
           "start_logits": start_logits,
           "end_logits": end_logits,
       }
-      output_spec = tf.contrib.tpu.TPUEstimatorSpec(
+      output_spec = tf.estimator.tpu.TPUEstimatorSpec(
           mode=mode, predictions=predictions, scaffold_fn=scaffold_fn)
     else:
       raise ValueError(
@@ -731,7 +733,7 @@ def input_fn_builder(input_file, seq_length, is_training, drop_remainder):
       d = d.shuffle(buffer_size=100)
 
     d = d.apply(
-        tf.contrib.data.map_and_batch(
+        tf.data.experimental.map_and_batch(
             lambda record: _decode_record(record, name_to_features),
             batch_size=batch_size,
             drop_remainder=drop_remainder))
@@ -1181,19 +1183,24 @@ def main(_):
       auto_mixed_precision=1 if FLAGS.amp else 2,
   ))
 
-  is_per_host = tf.contrib.tpu.InputPipelineConfig.PER_HOST_V2
-  run_config = tf.contrib.tpu.RunConfig(
+  is_per_host = tf.estimator.tpu.InputPipelineConfig.PER_HOST_V2
+  strategy = tf.distribute.MirroredStrategy(cross_device_ops=tf.distribute.NcclAllReduce())
+  #tf.distribute.experimental.MultiWorkerMirroredStrategy(communication=tf.distribute.experimental.CollectiveCommunication.NCCL)
+
+  run_config = tf.estimator.tpu.RunConfig(
       cluster=tpu_cluster_resolver,
       master=FLAGS.master,
       model_dir=FLAGS.output_dir,
+      train_distribute=strategy,
+      eval_distribute=strategy,
       save_checkpoints_steps=FLAGS.save_checkpoints_steps,
       session_config=tf.ConfigProto(
           graph_options=session_config,
           allow_soft_placement=True),
-      tpu_config=tf.contrib.tpu.TPUConfig(
+      tpu_config=tf.estimator.tpu.TPUConfig(
           iterations_per_loop=FLAGS.iterations_per_loop,
           num_shards=FLAGS.num_tpu_cores,
-          per_host_input_for_training=is_per_host))
+          per_host_input_for_training=True))#is_per_host))
 
   train_examples = None
   num_train_steps = None
@@ -1202,7 +1209,7 @@ def main(_):
     train_examples = read_squad_examples(
         input_file=FLAGS.train_file, is_training=True)
     num_train_steps = int(
-        len(train_examples) / FLAGS.train_batch_size * FLAGS.num_train_epochs)
+        len(train_examples) / (FLAGS.num_gpus * FLAGS.train_batch_size) * FLAGS.num_train_epochs)
     num_warmup_steps = int(num_train_steps * FLAGS.warmup_proportion)
 
     # Pre-shuffle the input to avoid having to make a very large shuffle
@@ -1221,7 +1228,7 @@ def main(_):
 
   # If TPU is not available, this will fall back to normal Estimator on CPU
   # or GPU.
-  estimator = tf.contrib.tpu.TPUEstimator(
+  estimator = tf.estimator.tpu.TPUEstimator(
       use_tpu=FLAGS.use_tpu,
       model_fn=model_fn,
       config=run_config,
@@ -1263,7 +1270,6 @@ def main(_):
 
     elapsed_time = int(time.time() - start_time)
     tf.logging.info('Elapsed seconds during training %d.', elapsed_time)
-
 
 
   if FLAGS.do_predict:
@@ -1329,6 +1335,7 @@ def main(_):
 
 
 if __name__ == "__main__":
+  tf.disable_v2_behavior()
   flags.mark_flag_as_required("vocab_file")
   flags.mark_flag_as_required("bert_config_file")
   flags.mark_flag_as_required("output_dir")
