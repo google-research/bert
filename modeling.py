@@ -362,9 +362,7 @@ def dropout(input_tensor, dropout_prob):
 
 def layer_norm(input_tensor, name=None):
   """Run layer normalization on the last dimension of the tensor."""
-  
-  return tfa.layers.GroupNormalization(groups=1, axis=-1, scope=name)(input_tensor) 
-  #tf.keras.layers.LayerNormalization(axis=-1, name=name)(input_tensor)
+  return tf.keras.layers.LayerNormalization(axis=-1, name=name)(input_tensor)
    #tf.layers.layer_norm(
       #inputs=input_tensor, begin_norm_axis=-1, begin_params_axis=-1, scope=name)
 
