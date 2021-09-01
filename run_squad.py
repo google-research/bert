@@ -158,6 +158,8 @@ flags.DEFINE_bool("amp", False, "Mixed Precision for Float 16.")
 
 flags.DEFINE_bool("xla", False, "Acclerated Linear Algebra")
 
+flags.DEFINE_bool("infer", False, "Run Inference")
+
 flags.DEFINE_integer('loss_scale', -1, 'Loss Scale for AMP.')
 
 flags.DEFINE_integer('num_gpus', 1, 'Number of GPUs.')
@@ -1175,7 +1177,7 @@ def main(_):
 
   tpu_cluster_resolver = None
   if FLAGS.use_tpu and FLAGS.tpu_name:
-    tpu_cluster_resolver = tf.contrib.cluster_resolver.TPUClusterResolver(
+    tpu_cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver(
         FLAGS.tpu_name, zone=FLAGS.tpu_zone, project=FLAGS.gcp_project)
 
   session_config = tf.GraphOptions(
@@ -1205,7 +1207,7 @@ def main(_):
   train_examples = None
   num_train_steps = None
   num_warmup_steps = None
-  if FLAGS.do_train:
+  if FLAGS.do_train or FLAGS.infer:
     train_examples = read_squad_examples(
         input_file=FLAGS.train_file, is_training=True)
     num_train_steps = int(
@@ -1235,7 +1237,7 @@ def main(_):
       train_batch_size=FLAGS.train_batch_size,
       predict_batch_size=FLAGS.predict_batch_size)
 
-  if FLAGS.do_train:
+  if FLAGS.do_train or FLAGS.infer:
     # We write to a temporary file to avoid storing very large constant tensors
     # in memory.
     train_writer = FeatureWriter(
@@ -1266,13 +1268,14 @@ def main(_):
         seq_length=FLAGS.max_seq_length,
         is_training=True,
         drop_remainder=True)
-    estimator.train(input_fn=train_input_fn, max_steps=num_train_steps)
+    if not FLAGS.infer:
+      estimator.train(input_fn=train_input_fn, max_steps=num_train_steps)
+      elapsed_time = int(time.time() - start_time)
+      tf.logging.info('Elapsed seconds during training %d.', elapsed_time)
 
-    elapsed_time = int(time.time() - start_time)
-    tf.logging.info('Elapsed seconds during training %d.', elapsed_time)
 
 
-  if FLAGS.do_predict:
+  if FLAGS.do_predict or FLAGS.infer:
     eval_examples = read_squad_examples(
         input_file=FLAGS.predict_file, is_training=False)
 
@@ -1307,6 +1310,48 @@ def main(_):
         seq_length=FLAGS.max_seq_length,
         is_training=False,
         drop_remainder=False)
+
+
+    if FLAGS.infer:
+      infer_input_fn = input_fn_builder(
+        input_file=train_writer.filename,
+        seq_length=FLAGS.max_seq_length,
+        is_training=False,
+        drop_remainder=False)
+      import time
+      import sys
+      import numpy as np
+      time_list = []
+      start_time = time.time()
+      steps = 0
+      counter = 0
+      temp = time.time()
+      for result in estimator.predict(infer_input_fn, yield_single_examples=False):
+          if counter ==0:
+              start_time = time.time()
+              temp = time.time()
+              counter+=1
+              continue
+          steps += result['unique_ids'].shape[0]
+          counter+=1
+          time_list.append(time.time() - temp)
+          temp = time.time()
+      elapsed_time = time.time()-start_time
+      duration_ms = np.array(time_list)
+      mean_latency = np.mean(duration_ms)
+      p99_latency = np.quantile(duration_ms, 0.99)
+      p95_latency = np.quantile(duration_ms, 0.95)
+      p90_latency = np.quantile(duration_ms, 0.90)
+      throughput = steps / float(elapsed_time)
+      tf.logging.info('Total time? {:0.5f}'.format(sum(time_list)))
+      tf.logging.info('Examples: {:0.5f}'.format(float(steps)))
+      tf.logging.info('Time Passed: {:0.5f}s'.format(float(elapsed_time)))
+      tf.logging.info('Throughput: {:0.5f} eps'.format(throughput))
+      tf.logging.info('Mean Latency: {:0.5f}s'.format(mean_latency))
+      tf.logging.info('P90 Latency: {:0.5f}s'.format(p90_latency))
+      tf.logging.info('P95 Latency: {:0.5f}s'.format(p95_latency))
+      tf.logging.info('P99 Latency: {:0.5f}s'.format(p99_latency))
+      sys.exit(0)
 
     # If running eval on the TPU, you will need to specify the number of
     # steps.
