@@ -1193,8 +1193,8 @@ def main(_):
       cluster=tpu_cluster_resolver,
       master=FLAGS.master,
       model_dir=FLAGS.output_dir,
-      train_distribute=strategy,
-      eval_distribute=strategy,
+      train_distribute=strategy if FLAGS.use_tpu else None,
+      eval_distribute=strategy if FLAGS.use_tpu else None,
       save_checkpoints_steps=FLAGS.save_checkpoints_steps,
       session_config=tf.ConfigProto(
           graph_options=session_config,
