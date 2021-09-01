@@ -642,6 +642,9 @@ def model_fn_builder(bert_config, init_checkpoint, learning_rate,
       else:
         tf.train.init_from_checkpoint(init_checkpoint, assignment_map)
 
+    if not init_checkpoint and use_tpu:
+      scaffold_fn = tf.train.Scaffold()
+
     tf.logging.info("**** Trainable Variables ****")
     for var in tvars:
       init_string = ""
