@@ -1202,7 +1202,7 @@ def main(_):
       tpu_config=tf.estimator.tpu.TPUConfig(
           iterations_per_loop=FLAGS.iterations_per_loop,
           num_shards=FLAGS.num_tpu_cores,
-          per_host_input_for_training=True))#is_per_host))
+          per_host_input_for_training=is_per_host))
 
   train_examples = None
   num_train_steps = None
