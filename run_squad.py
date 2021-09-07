@@ -605,7 +605,6 @@ def model_fn_builder(bert_config, init_checkpoint, learning_rate,
 
   def model_fn(features, labels, mode, params):  # pylint: disable=unused-argument
     """The `model_fn` for TPUEstimator."""
-
     tf.logging.info("*** Features ***")
     for name in sorted(features.keys()):
       tf.logging.info("  name = %s, shape = %s" % (name, features[name].shape))
@@ -669,7 +668,7 @@ def model_fn_builder(bert_config, init_checkpoint, learning_rate,
       end_loss = compute_loss(end_logits, end_positions)
 
       total_loss = (start_loss + end_loss) / 2.0
-
+      
       train_op = optimization.create_optimizer(
           total_loss, learning_rate, num_train_steps, num_warmup_steps, use_tpu, FLAGS.amp, FLAGS.loss_scale)
 
@@ -680,7 +679,7 @@ def model_fn_builder(bert_config, init_checkpoint, learning_rate,
           scaffold_fn=scaffold_fn)
     elif mode == tf.estimator.ModeKeys.PREDICT:
       predictions = {
-          "unique_ids": unique_ids,
+          "unique_ids": tf.identity(unique_ids),
           "start_logits": start_logits,
           "end_logits": end_logits,
       }
@@ -1208,16 +1207,17 @@ def main(_):
   num_train_steps = None
   num_warmup_steps = None
   if FLAGS.do_train or FLAGS.infer:
-    train_examples = read_squad_examples(
-        input_file=FLAGS.train_file, is_training=True)
-    num_train_steps = int(
-        len(train_examples) / (FLAGS.num_gpus * FLAGS.train_batch_size) * FLAGS.num_train_epochs)
-    num_warmup_steps = int(num_train_steps * FLAGS.warmup_proportion)
+    if not os.path.isfile(os.path.join(FLAGS.output_dir, "train.tf_record")):
+      train_examples = read_squad_examples(
+          input_file=FLAGS.train_file, is_training=True)
+      # Pre-shuffle the input to avoid having to make a very large shuffle
+      # buffer in in the `input_fn`.
+      rng = random.Random(12345)
+      rng.shuffle(train_examples)
 
-    # Pre-shuffle the input to avoid having to make a very large shuffle
-    # buffer in in the `input_fn`.
-    rng = random.Random(12345)
-    rng.shuffle(train_examples)
+    num_train_steps = int(
+        87599 / (FLAGS.num_gpus * FLAGS.train_batch_size) * FLAGS.num_train_epochs)
+    num_warmup_steps = int(num_train_steps * FLAGS.warmup_proportion)
 
   model_fn = model_fn_builder(
       bert_config=bert_config,
@@ -1240,22 +1240,23 @@ def main(_):
   if FLAGS.do_train or FLAGS.infer:
     # We write to a temporary file to avoid storing very large constant tensors
     # in memory.
-    train_writer = FeatureWriter(
-        filename=os.path.join(FLAGS.output_dir, "train.tf_record"),
-        is_training=True)
-    convert_examples_to_features(
-        examples=train_examples,
-        tokenizer=tokenizer,
-        max_seq_length=FLAGS.max_seq_length,
-        doc_stride=FLAGS.doc_stride,
-        max_query_length=FLAGS.max_query_length,
-        is_training=True,
-        output_fn=train_writer.process_feature)
-    train_writer.close()
+    if not os.path.isfile(os.path.join(FLAGS.output_dir, "train.tf_record")):
+      train_writer = FeatureWriter(
+          filename=os.path.join(FLAGS.output_dir, "train.tf_record"),
+          is_training=True)
+      convert_examples_to_features(
+          examples=train_examples,
+          tokenizer=tokenizer,
+          max_seq_length=FLAGS.max_seq_length,
+          doc_stride=FLAGS.doc_stride,
+          max_query_length=FLAGS.max_query_length,
+          is_training=True,
+          output_fn=train_writer.process_feature)
+      train_writer.close()
 
     tf.logging.info("***** Running training *****")
-    tf.logging.info("  Num orig examples = %d", len(train_examples))
-    tf.logging.info("  Num split examples = %d", train_writer.num_features)
+    tf.logging.info("  Num orig examples = %d", 87599)
+    tf.logging.info("  Num split examples = %d", 88641)
     tf.logging.info("  Batch size = %d", FLAGS.train_batch_size)
     tf.logging.info("  Num steps = %d", num_train_steps)
     del train_examples
@@ -1264,7 +1265,7 @@ def main(_):
     start_time = time.time()
 
     train_input_fn = input_fn_builder(
-        input_file=train_writer.filename,
+        input_file=os.path.join(FLAGS.output_dir, "train.tf_record"),
         seq_length=FLAGS.max_seq_length,
         is_training=True,
         drop_remainder=True)
@@ -1299,8 +1300,8 @@ def main(_):
     eval_writer.close()
 
     tf.logging.info("***** Running predictions *****")
-    tf.logging.info("  Num orig examples = %d", len(eval_examples))
-    tf.logging.info("  Num split examples = %d", len(eval_features))
+    tf.logging.info("  Num orig examples = %d", 10570)
+    tf.logging.info("  Num split examples = %d", 10833)
     tf.logging.info("  Batch size = %d", FLAGS.predict_batch_size)
 
     all_results = []
@@ -1311,10 +1312,49 @@ def main(_):
         is_training=False,
         drop_remainder=False)
 
+    def serving_input_receiver_fn():
+      """Serving input_fn that builds features from placeholders
+
+      Returns
+      -------
+      tf.estimator.export.ServingInputReceiver
+      """
+      name_to_features = {
+      "unique_ids": tf.placeholder(tf.int32, [None]),
+      "input_ids": tf.placeholder(tf.int32, [None, FLAGS.max_seq_length]),
+      "input_mask": tf.placeholder(tf.int32, [None, FLAGS.max_seq_length]),
+      "segment_ids": tf.placeholder(tf.int32, [None, FLAGS.max_seq_length]),
+      }
+      example = {}
+      '''
+      name_to_features = {
+      "unique_ids": tf.FixedLenFeature([], tf.int64),
+      "input_ids": tf.FixedLenFeature([FLAGS.max_seq_length], tf.int64),
+      "input_mask": tf.FixedLenFeature([FLAGS.max_seq_length], tf.int64),
+      "segment_ids": tf.FixedLenFeature([FLAGS.max_seq_length], tf.int64),
+      }
+      '''
+      #serialized_tf_example = tf.placeholder(dtype=tf.string,shape=[None])
+      #receiver_tensors = {'examples': serialized_tf_example}
+      #example = tf.parse_single_example(serialized_tf_example, name_to_features)
+
+      # tf.Example only supports tf.int64, but the TPU only supports tf.int32.
+      # So cast all int64 to int32.
+      '''
+      for name in list(name_to_features.keys()):
+        t = name_to_features[name]
+        if t.dtype == tf.int64:
+          t = tf.identity(tf.to_int32(t))
+        example[name] = t
+      '''
+      #return tf.estimator.export.ServingInputReceiver(example, receiver_tensors)
+      return tf.estimator.export.ServingInputReceiver(name_to_features, name_to_features)
+    estimator.export_saved_model('saved_model', serving_input_receiver_fn)
+    #import pdb; pdb.set_trace()
 
     if FLAGS.infer:
       infer_input_fn = input_fn_builder(
-        input_file=train_writer.filename,
+        input_file=os.path.join(FLAGS.output_dir, "eval.tf_record"),
         seq_length=FLAGS.max_seq_length,
         is_training=False,
         drop_remainder=False)
