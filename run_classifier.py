@@ -24,7 +24,8 @@ import os
 import modeling
 import optimization
 import tokenization
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+from tensorflow.core.protobuf import rewriter_config_pb2
 
 flags = tf.flags
 
@@ -122,6 +123,15 @@ tf.flags.DEFINE_string("master", None, "[Optional] TensorFlow master URL.")
 flags.DEFINE_integer(
     "num_tpu_cores", 8,
     "Only used if `use_tpu` is True. Total number of TPU cores to use.")
+
+flags.DEFINE_bool("amp", False, "Mixed Precision for Float 16.")
+
+flags.DEFINE_bool("xla", False, "Acclerated Linear Algebra")
+
+flags.DEFINE_integer('loss_scale', -1, 'Loss Scale for AMP.')
+
+flags.DEFINE_bool("infer", False, "Run Inference")
+
 
 
 class InputExample(object):
@@ -544,7 +554,7 @@ def file_based_input_fn_builder(input_file, seq_length, is_training,
       d = d.shuffle(buffer_size=100)
 
     d = d.apply(
-        tf.contrib.data.map_and_batch(
+        tf.data.experimental.map_and_batch(
             lambda record: _decode_record(record, name_to_features),
             batch_size=batch_size,
             drop_remainder=drop_remainder))
@@ -589,7 +599,7 @@ def create_model(bert_config, is_training, input_ids, input_mask, segment_ids,
   # instead.
   output_layer = model.get_pooled_output()
 
-  hidden_size = output_layer.shape[-1].value
+  hidden_size = output_layer.shape[-1]
 
   output_weights = tf.get_variable(
       "output_weights", [num_labels, hidden_size],
@@ -672,9 +682,9 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
     if mode == tf.estimator.ModeKeys.TRAIN:
 
       train_op = optimization.create_optimizer(
-          total_loss, learning_rate, num_train_steps, num_warmup_steps, use_tpu)
+          total_loss, learning_rate, num_train_steps, num_warmup_steps, use_tpu, FLAGS.amp, FLAGS.loss_scale)
 
-      output_spec = tf.contrib.tpu.TPUEstimatorSpec(
+      output_spec = tf.estimator.tpu.TPUEstimatorSpec(
           mode=mode,
           loss=total_loss,
           train_op=train_op,
@@ -693,13 +703,13 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
 
       eval_metrics = (metric_fn,
                       [per_example_loss, label_ids, logits, is_real_example])
-      output_spec = tf.contrib.tpu.TPUEstimatorSpec(
+      output_spec = tf.estimator.tpu.TPUEstimatorSpec(
           mode=mode,
           loss=total_loss,
           eval_metrics=eval_metrics,
           scaffold_fn=scaffold_fn)
     else:
-      output_spec = tf.contrib.tpu.TPUEstimatorSpec(
+      output_spec = tf.estimator.tpu.TPUEstimatorSpec(
           mode=mode,
           predictions={"probabilities": probabilities},
           scaffold_fn=scaffold_fn)
@@ -782,6 +792,35 @@ def convert_examples_to_features(examples, label_list, max_seq_length,
 
 def main(_):
   tf.logging.set_verbosity(tf.logging.INFO)
+  import os
+  # From Nvidia Repo, explained here: https://github.com/NVIDIA/DeepLearningExamples/issues/57
+  os.environ['CUDA_CACHE_DISABLE'] = '0'
+  os.environ['TF_GPU_THREAD_MODE'] = 'gpu_private'
+  os.environ['TF_GPU_THREAD_COUNT'] = '2'
+  os.environ['TF_USE_CUDNN_BATCHNORM_SPATIAL_PERSISTENT'] = '1'
+  os.environ['TF_ADJUST_HUE_FUSED'] = '1'
+  os.environ['TF_ADJUST_SATURATION_FUSED'] = '1'
+  os.environ['TF_ENABLE_WINOGRAD_NONFUSED'] = '1'
+  os.environ['TF_SYNC_ON_FINISH'] = '0'
+  os.environ['TF_AUTOTUNE_THRESHOLD'] = '2'
+  os.environ['TF_DISABLE_NVTX_RANGES'] = '1'
+  # Enable AMP
+  amp = FLAGS.amp
+  xla = FLAGS.xla
+
+  if amp:
+    os.environ["TF_ENABLE_AUTO_MIXED_PRECISION_GRAPH_REWRITE"] = "1"
+  if xla:
+      # https://github.com/tensorflow/tensorflow/blob/8d72537c6abf5a44103b57b9c2e22c14f5f49698/tensorflow/compiler/jit/flags.cc#L78-L87
+      # 1: on for things very likely to be improved
+      # 2: on for everything
+      # fusible: only for Tensorflow operations that XLA knows how to fuse
+      #
+      # os.environ['TF_XLA_FLAGS'] = '--tf_xla_auto_jit=1'
+      # os.environ['TF_XLA_FLAGS'] = '--tf_xla_auto_jit=2'
+      # Best Performing XLA Option
+      os.environ['TF_XLA_FLAGS'] = '--tf_xla_auto_jit=fusible'
+      os.environ["TF_XLA_FLAGS"] = (os.environ.get("TF_XLA_FLAGS", "") + " --tf_xla_enable_lazy_compilation=false")
 
   processors = {
       "cola": ColaProcessor,
@@ -821,16 +860,24 @@ def main(_):
 
   tpu_cluster_resolver = None
   if FLAGS.use_tpu and FLAGS.tpu_name:
-    tpu_cluster_resolver = tf.contrib.cluster_resolver.TPUClusterResolver(
+    tpu_cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver(
         FLAGS.tpu_name, zone=FLAGS.tpu_zone, project=FLAGS.gcp_project)
 
-  is_per_host = tf.contrib.tpu.InputPipelineConfig.PER_HOST_V2
-  run_config = tf.contrib.tpu.RunConfig(
+  session_config = tf.GraphOptions(
+    rewrite_options=rewriter_config_pb2.RewriterConfig(
+      auto_mixed_precision=1 if FLAGS.amp else 2,
+    ))
+
+  is_per_host = tf.estimator.tpu.InputPipelineConfig.PER_HOST_V2
+  run_config = tf.estimator.tpu.RunConfig(
       cluster=tpu_cluster_resolver,
       master=FLAGS.master,
       model_dir=FLAGS.output_dir,
       save_checkpoints_steps=FLAGS.save_checkpoints_steps,
-      tpu_config=tf.contrib.tpu.TPUConfig(
+      session_config=tf.ConfigProto(
+          graph_options=session_config,
+          allow_soft_placement=True),
+      tpu_config=tf.estimator.tpu.TPUConfig(
           iterations_per_loop=FLAGS.iterations_per_loop,
           num_shards=FLAGS.num_tpu_cores,
           per_host_input_for_training=is_per_host))
@@ -856,7 +903,7 @@ def main(_):
 
   # If TPU is not available, this will fall back to normal Estimator on CPU
   # or GPU.
-  estimator = tf.contrib.tpu.TPUEstimator(
+  estimator = tf.estimator.tpu.TPUEstimator(
       use_tpu=FLAGS.use_tpu,
       model_fn=model_fn,
       config=run_config,
@@ -877,7 +924,7 @@ def main(_):
         seq_length=FLAGS.max_seq_length,
         is_training=True,
         drop_remainder=True)
-    estimator.train(input_fn=train_input_fn, max_steps=num_train_steps)
+    estimator.train(input_fn=train_input_fn, max_steps=100)
 
   if FLAGS.do_eval:
     eval_examples = processor.get_dev_examples(FLAGS.data_dir)
@@ -925,6 +972,54 @@ def main(_):
         tf.logging.info("  %s = %s", key, str(result[key]))
         writer.write("%s = %s\n" % (key, str(result[key])))
 
+  if FLAGS.infer:
+    infer_examples = processor.get_train_examples(FLAGS.data_dir)
+    infer_file = os.path.join(FLAGS.output_dir, "train.tf_record")
+    file_based_convert_examples_to_features(infer_examples, label_list, FLAGS.max_seq_length, tokenizer, infer_file)
+    infer_input_fn = file_based_input_fn_builder(
+      input_file=infer_file,
+      seq_length=FLAGS.max_seq_length,
+      is_training=False,
+      drop_remainder=False)
+
+    counter = 0
+    steps =0
+    import time
+    import numpy as np
+    time_list = []
+    start = time.time()
+    while True:
+      for i, result in enumerate(estimator.predict(infer_input_fn, yield_single_examples=False)):
+        if i<=20:
+          start = time.time()
+          continue
+
+        time_list.append(time.time() - start)
+        steps += result['probabilities'].shape[0]
+        start = time.time()
+        counter+=1
+
+        if counter == 1500:
+          time_list.sort()
+          time_list = time_list[:-5]
+          duration_ms = np.array(time_list)
+          mean_latency = np.mean(duration_ms)
+          p99_latency = np.quantile(duration_ms, 0.99)
+          p95_latency = np.quantile(duration_ms, 0.95)
+          p90_latency = np.quantile(duration_ms, 0.90)
+          throughput = steps / float(sum(time_list))
+          tf.logging.info('Total time {:0.5f}'.format(sum(time_list)))
+          tf.logging.info('Examples: {:0.5f}'.format(float(steps)))
+          tf.logging.info('Throughput: {:0.5f} eps'.format(throughput))
+          tf.logging.info('Mean Latency: {:0.5f}s'.format(mean_latency))
+          tf.logging.info('P90 Latency: {:0.5f}s'.format(p90_latency))
+          tf.logging.info('P95 Latency: {:0.5f}s'.format(p95_latency))
+          tf.logging.info('P99 Latency: {:0.5f}s'.format(p99_latency))
+          import sys
+          sys.exit(0)
+
+
+
   if FLAGS.do_predict:
     predict_examples = processor.get_test_examples(FLAGS.data_dir)
     num_actual_predict_examples = len(predict_examples)
@@ -955,7 +1050,19 @@ def main(_):
         drop_remainder=predict_drop_remainder)
 
     result = estimator.predict(input_fn=predict_input_fn)
-
+    '''
+    features = {
+         "input_ids": tf.placeholder(shape=[None, FLAGS.max_seq_length], dtype=tf.int32, name='input_ids'),
+         "input_mask": tf.placeholder(shape=[None, FLAGS.max_seq_length], dtype=tf.int32, name='input_mask'),
+         "segment_ids": tf.placeholder(shape=[None, FLAGS.max_seq_length], dtype=tf.int32, name='segment_ids'),
+         "label_ids": tf.placeholder(shape=[None], dtype=tf.int32, name='label_ids'),
+         "is_real_example": tf.placeholder(shape=[None], dtype=tf.int32, name='is_real_example'),}
+    serving_input_fn = tf.estimator.export.build_raw_serving_input_receiver_fn(features)
+    estimator._export_to_tpu = False  ## !!important to add this
+    estimator.export_saved_model(
+        export_dir_base='./bert_classifier_saved_model',
+        serving_input_receiver_fn=serving_input_fn)
+    '''
     output_predict_file = os.path.join(FLAGS.output_dir, "test_results.tsv")
     with tf.gfile.GFile(output_predict_file, "w") as writer:
       num_written_lines = 0
