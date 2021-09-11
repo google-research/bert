@@ -668,7 +668,7 @@ def model_fn_builder(bert_config, init_checkpoint, learning_rate,
       end_loss = compute_loss(end_logits, end_positions)
 
       total_loss = (start_loss + end_loss) / 2.0
-      
+
       train_op = optimization.create_optimizer(
           total_loss, learning_rate, num_train_steps, num_warmup_steps, use_tpu, FLAGS.amp, FLAGS.loss_scale)
 
@@ -1362,13 +1362,11 @@ def main(_):
       import sys
       import numpy as np
       time_list = []
-      start_time = time.time()
       steps = 0
       counter = 0
       temp = time.time()
       for result in estimator.predict(infer_input_fn, yield_single_examples=False):
-          if counter ==0:
-              start_time = time.time()
+          if counter <5:
               temp = time.time()
               counter+=1
               continue
@@ -1376,16 +1374,14 @@ def main(_):
           counter+=1
           time_list.append(time.time() - temp)
           temp = time.time()
-      elapsed_time = time.time()-start_time
       duration_ms = np.array(time_list)
       mean_latency = np.mean(duration_ms)
       p99_latency = np.quantile(duration_ms, 0.99)
       p95_latency = np.quantile(duration_ms, 0.95)
       p90_latency = np.quantile(duration_ms, 0.90)
-      throughput = steps / float(elapsed_time)
+      throughput = steps / float(sum(time_list))
       tf.logging.info('Total time? {:0.5f}'.format(sum(time_list)))
       tf.logging.info('Examples: {:0.5f}'.format(float(steps)))
-      tf.logging.info('Time Passed: {:0.5f}s'.format(float(elapsed_time)))
       tf.logging.info('Throughput: {:0.5f} eps'.format(throughput))
       tf.logging.info('Mean Latency: {:0.5f}s'.format(mean_latency))
       tf.logging.info('P90 Latency: {:0.5f}s'.format(p90_latency))

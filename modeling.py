@@ -27,7 +27,6 @@ import numpy as np
 import six
 import tensorflow as tf
 import tensorflow.compat.v1 as tf
-import tensorflow_addons as tfa
 
 class BertConfig(object):
   """Configuration for `BertModel`."""
