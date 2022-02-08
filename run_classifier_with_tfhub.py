@@ -19,6 +19,7 @@ from __future__ import division
 from __future__ import print_function
 
 import os
+import math
 import optimization
 import run_classifier
 import tokenization
@@ -201,8 +202,8 @@ def main(_):
   num_warmup_steps = None
   if FLAGS.do_train:
     train_examples = processor.get_train_examples(FLAGS.data_dir)
-    num_train_steps = int(
-        len(train_examples) / FLAGS.train_batch_size * FLAGS.num_train_epochs)
+    num_train_steps = math.ceil(
+        len(train_examples) / FLAGS.train_batch_size) * FLAGS.num_train_epochs
     num_warmup_steps = int(num_train_steps * FLAGS.warmup_proportion)
 
   model_fn = model_fn_builder(
