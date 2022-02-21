@@ -6,7 +6,7 @@ This is a release of 24 smaller BERT models (English only, uncased, trained with
 
 We have shown that the standard BERT recipe (including model architecture and training objective) is effective for a wide range of model sizes, beyond BERT-Base and BERT-Large. The smaller BERT models are intended for environments with restricted computational resources. They can be fine-tuned in the same manner as the original BERT models. However, they are most effective in the context of knowledge distillation, where the fine-tuning labels are produced by a larger and more accurate teacher.
 
-Our goal is to enable research in institutions with fewer computational resources and encourage the community to seek directions of innovation alternative to increasing model capacity.
+Our goal is to enable research in institutions with fewer computational resources and encourage the community to seek directions of innovation as an alternative to increasing model capacity.
 
 You can download all 24 from [here][all], or individually from the table below:
 
