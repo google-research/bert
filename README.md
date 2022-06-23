@@ -79,15 +79,15 @@ the pre-processing code.
 In the original pre-processing code, we randomly select WordPiece tokens to
 mask. For example:
 
-`Input Text: the man jumped up , put his basket on phil ##am ##mon ' s head`
-`Original Masked Input: [MASK] man [MASK] up , put his [MASK] on phil
+`Input Text: the man jumped up, put his basket on Phil ##am ##mon ' s head`
+`Original Masked Input: [MASK] man [MASK] up, put his [MASK] on Phil
 [MASK] ##mon ' s head`
 
 The new technique is called Whole Word Masking. In this case, we always mask
-*all* of the the tokens corresponding to a word at once. The overall masking
+*all* of the tokens corresponding to a word at once. The overall masking
 rate remains the same.
 
-`Whole Word Masked Input: the man [MASK] up , put his basket on [MASK] [MASK]
+`Whole Word Masked Input: the man [MASK] up, put his basket on [MASK] [MASK]
 [MASK] ' s head`
 
 The training is identical -- we still predict each masked WordPiece token
@@ -128,10 +128,10 @@ Mongolian \*\*\*\*\***
 
 We uploaded a new multilingual model which does *not* perform any normalization
 on the input (no lower casing, accent stripping, or Unicode normalization), and
-additionally inclues Thai and Mongolian.
+additionally includes Thai and Mongolian.
 
 **It is recommended to use this version for developing multilingual models,
-especially on languages with non-Latin alphabets.**
+especially in languages with non-Latin alphabets.**
 
 This does not require any code changes, and can be downloaded here:
 
@@ -237,7 +237,7 @@ and contextual representations can further be *unidirectional* or
 [GloVe](https://nlp.stanford.edu/projects/glove/) generate a single "word
 embedding" representation for each word in the vocabulary, so `bank` would have
 the same representation in `bank deposit` and `river bank`. Contextual models
-instead generate a representation of each word that is based on the other words
+instead, generate a representation of each word that is based on the other words
 in the sentence.
 
 BERT was built upon recent work in pre-training contextual representations —
@@ -271,14 +271,14 @@ and `B`, is `B` the actual next sentence that comes after `A`, or just a random
 sentence from the corpus?
 
 ```
-Sentence A: the man went to the store .
-Sentence B: he bought a gallon of milk .
+Sentence A: the man went to the store.
+Sentence B: he bought a gallon of milk.
 Label: IsNextSentence
 ```
 
 ```
-Sentence A: the man went to the store .
-Sentence B: penguins are flightless .
+Sentence A: the man went to the store.
+Sentence B: penguins are flightless.
 Label: NotNextSentence
 ```
 
@@ -406,7 +406,7 @@ Please see the
 for how to use Cloud TPUs. Alternatively, you can use the Google Colab notebook
 "[BERT FineTuning with Cloud TPUs](https://colab.research.google.com/github/tensorflow/tpu/blob/master/tools/colab/bert_finetuning_with_cloud_tpus.ipynb)".
 
-On Cloud TPUs, the pretrained model and the output directory will need to be on
+On Cloud TPUs, the pre-trained model and the output directory will need to be on
 Google Cloud Storage. For example, if you have a bucket named `some_bucket`, you
 might use the following flags instead:
 
@@ -478,7 +478,7 @@ that it's running on something other than a Cloud TPU, which includes a GPU.
 
 Once you have trained your classifier you can use it in inference mode by using
 the --do_predict=true command. You need to have a file named test.tsv in the
-input folder. Output will be created in file called test_results.tsv in the
+input folder. The output will be created in file called test_results.tsv in the
 output folder. Each line will contain output for each sample, columns are the
 class probabilities.
 
@@ -500,7 +500,7 @@ python run_classifier.py \
 
 ### SQuAD 1.1
 
-The Stanford Question Answering Dataset (SQuAD) is a popular question answering
+The Stanford Question Answering Dataset (SQuAD) is a popular question-answering
 benchmark dataset. BERT (at the time of the release) obtains state-of-the-art
 results on SQuAD with almost no task-specific network architecture modifications
 or data augmentation. However, it does require semi-complex data pre-processing
@@ -639,7 +639,7 @@ python $SQUAD_DIR/evaluate-v2.0.py $SQUAD_DIR/dev-v2.0.json
 
 Assume the script outputs "best_f1_thresh" THRESH. (Typical values are between
 -1.0 and -5.0). You can now re-run the model to generate predictions with the
-derived threshold or alternatively you can extract the appropriate answers from
+derived threshold or alternatively, you can extract the appropriate answers from
 ./squad/nbest_predictions.json.
 
 ```shell
