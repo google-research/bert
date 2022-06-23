@@ -1,5 +1,4 @@
 # BERT
-
 **\*\*\*\*\* New March 11th, 2020: Smaller BERT Models \*\*\*\*\***
 
 This is a release of 24 smaller BERT models (English only, uncased, trained with WordPiece masking) referenced in [Well-Read Students Learn Better: On the Importance of Pre-training Compact Models](https://arxiv.org/abs/1908.08962).
@@ -79,15 +78,15 @@ the pre-processing code.
 In the original pre-processing code, we randomly select WordPiece tokens to
 mask. For example:
 
-`Input Text: the man jumped up , put his basket on phil ##am ##mon ' s head`
-`Original Masked Input: [MASK] man [MASK] up , put his [MASK] on phil
+`Input Text: the man jumped up, put his basket on Phil ##am ##mon ' s head`
+`Original Masked Input: [MASK] man [MASK] up, put his [MASK] on Phil
 [MASK] ##mon ' s head`
 
 The new technique is called Whole Word Masking. In this case, we always mask
-*all* of the the tokens corresponding to a word at once. The overall masking
+*all* of the tokens corresponding to a word at once. The overall masking
 rate remains the same.
 
-`Whole Word Masked Input: the man [MASK] up , put his basket on [MASK] [MASK]
+`Whole Word Masked Input: the man [MASK] up, put his basket on [MASK] [MASK]
 [MASK] ' s head`
 
 The training is identical -- we still predict each masked WordPiece token
