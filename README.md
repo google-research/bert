@@ -283,7 +283,7 @@ Label: NotNextSentence
 ```
 
 We then train a large model (12-layer to 24-layer Transformer) on a large corpus
-(Wikipedia + [BookCorpus](http://yknzhu.wixsite.com/mbweb)) for a long time (1M
+(Wikipedia + [BookCorpus](https://paperswithcode.com/dataset/bookcorpus)) for a long time (1M
 update steps), and that's BERT.
 
 Using BERT has two stages: *Pre-training* and *fine-tuning*.
