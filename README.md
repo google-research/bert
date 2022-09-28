@@ -286,14 +286,16 @@ We then train a large model (12-layer to 24-layer Transformer) on a large corpus
 (Wikipedia + [BookCorpus](http://yknzhu.wixsite.com/mbweb)) for a long time (1M
 update steps), and that's BERT.
 
-Using BERT has two stages: *Pre-training* and *fine-tuning*.
+Using BERT has two stages: **Pre-training** and **fine-tuning**.
 
+## Pre-training
 **Pre-training** is fairly expensive (four days on 4 to 16 Cloud TPUs), but is a
 one-time procedure for each language (current models are English-only, but
 multilingual models will be released in the near future). We are releasing a
 number of pre-trained models from the paper which were pre-trained at Google.
 Most NLP researchers will never need to pre-train their own model from scratch.
 
+## Fine-tuning
 **Fine-tuning** is inexpensive. All of the results in the paper can be
 replicated in at most 1 hour on a single Cloud TPU, or a few hours on a GPU,
 starting from the exact same pre-trained model. SQuAD, for example, can be
