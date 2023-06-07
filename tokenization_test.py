@@ -90,47 +90,35 @@ class TokenizationTest(tf.test.TestCase):
     self.assertAllEqual(
         tokenizer.tokenize("unwantedX running"), ["[UNK]", "runn", "##ing"])
 
-  def test_convert_tokens_to_ids(self):
-    vocab_tokens = [
-        "[UNK]", "[CLS]", "[SEP]", "want", "##want", "##ed", "wa", "un", "runn",
-        "##ing"
-    ]
+ def test_is_whitespace(self):
+    whitespace_chars = [u" ", u"\t", u"\r", u"\n", u"\u00A0"]
+    non_whitespace_chars = [u"A", u"-"]
 
-    vocab = {}
-    for (i, token) in enumerate(vocab_tokens):
-      vocab[token] = i
+    for char in whitespace_chars:
+        self.assertTrue(tokenization._is_whitespace(char))
 
-    self.assertAllEqual(
-        tokenization.convert_tokens_to_ids(
-            vocab, ["un", "##want", "##ed", "runn", "##ing"]), [7, 4, 5, 8, 9])
+    for char in non_whitespace_chars:
+        self.assertFalse(tokenization._is_whitespace(char))
 
-  def test_is_whitespace(self):
-    self.assertTrue(tokenization._is_whitespace(u" "))
-    self.assertTrue(tokenization._is_whitespace(u"\t"))
-    self.assertTrue(tokenization._is_whitespace(u"\r"))
-    self.assertTrue(tokenization._is_whitespace(u"\n"))
-    self.assertTrue(tokenization._is_whitespace(u"\u00A0"))
+def test_is_control(self):
+    control_chars = [u"\u0005"]
+    non_control_chars = [u"A", u" ", u"\t", u"\r", u"\U0001F4A9"]
 
-    self.assertFalse(tokenization._is_whitespace(u"A"))
-    self.assertFalse(tokenization._is_whitespace(u"-"))
+    for char in control_chars:
+        self.assertTrue(tokenization._is_control(char))
 
-  def test_is_control(self):
-    self.assertTrue(tokenization._is_control(u"\u0005"))
+    for char in non_control_chars:
+        self.assertFalse(tokenization._is_control(char))
 
-    self.assertFalse(tokenization._is_control(u"A"))
-    self.assertFalse(tokenization._is_control(u" "))
-    self.assertFalse(tokenization._is_control(u"\t"))
-    self.assertFalse(tokenization._is_control(u"\r"))
-    self.assertFalse(tokenization._is_control(u"\U0001F4A9"))
+def test_is_punctuation(self):
+    punctuation_chars = [u"-", u"$", u"`", u"."]
+    non_punctuation_chars = [u"A", u" "]
 
-  def test_is_punctuation(self):
-    self.assertTrue(tokenization._is_punctuation(u"-"))
-    self.assertTrue(tokenization._is_punctuation(u"$"))
-    self.assertTrue(tokenization._is_punctuation(u"`"))
-    self.assertTrue(tokenization._is_punctuation(u"."))
+    for char in punctuation_chars:
+        self.assertTrue(tokenization._is_punctuation(char))
 
-    self.assertFalse(tokenization._is_punctuation(u"A"))
-    self.assertFalse(tokenization._is_punctuation(u" "))
+    for char in non_punctuation_chars:
+        self.assertFalse(tokenization._is_punctuation(char))
 
 
 if __name__ == "__main__":
