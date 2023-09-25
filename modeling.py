@@ -302,17 +302,17 @@ def get_activation(activation_string):
     return None
 
   act = activation_string.lower()
-  if act == "linear":
-    return None
-  elif act == "relu":
-    return tf.nn.relu
-  elif act == "gelu":
-    return gelu
-  elif act == "tanh":
-    return tf.tanh
-  else:
-    raise ValueError("Unsupported activation: %s" % act)
+  mapping_dict = {
+      "linear": None,
+      "relu": tf.nn.relu,
+      "gelu": gelu,
+      "tanh": tf.tanh,
+  }
 
+  try:
+    return mapping_dict[act]
+  except Exception as e:
+    raise ValueError("Unsupported activation: %s" % act)
 
 def get_assignment_map_from_checkpoint(tvars, init_checkpoint):
   """Compute the union of the current variables and checkpoint variables."""
