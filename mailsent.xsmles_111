@@ -1,0 +1,8 @@
+{
+  "scalares": {a, b, c, e, d};
+  "principales" : {0, 1, 111};
+  "dategramme": {1, 0, 111};
+  "code": {b+a(c,d,e)=16++}
+  "explotiones": {while (1)}
+  "results": {array[0,1,111]}
+}
